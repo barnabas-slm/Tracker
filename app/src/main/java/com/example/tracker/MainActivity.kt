@@ -62,6 +62,7 @@ import com.example.tracker.ui.theme.TrackerTheme
 import com.example.tracker.viewmodel.CounterViewModel
 import com.example.tracker.viewmodel.DisplayItem
 import com.example.tracker.viewmodel.SortOrder
+import androidx.compose.runtime.remember
 
 class MainActivity : ComponentActivity() {
     private val counterViewModel: CounterViewModel by viewModels {
@@ -84,7 +85,7 @@ fun TrackerApp(viewModel: CounterViewModel) {
     var editingGroupId   by rememberSaveable { mutableStateOf<String?>(null) }
 
     // Per-group expanded state: true = expanded (default), false = collapsed
-    val groupExpandedState = mutableStateMapOf<String, Boolean>()
+    val groupExpandedState = remember { mutableStateMapOf<String, Boolean>() }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
