@@ -48,9 +48,13 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.tracker.data.Counter
 import com.example.tracker.data.CounterGroup
 import com.example.tracker.data.TrackerDatabase
+import com.example.tracker.ui.components.AboutScreen
 import com.example.tracker.ui.components.CounterCard
 import com.example.tracker.ui.components.CounterSettingsDialog
 import com.example.tracker.ui.components.GroupSettingsDialog
@@ -73,9 +77,26 @@ class MainActivity : ComponentActivity() {
 }
 
 // ── Root composable ───────────────────────────────────────────────────────────
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TrackerApp(viewModel: CounterViewModel) {
+    val navController = rememberNavController()
+    NavHost(navController = navController, startDestination = "main") {
+        composable("main") {
+            MainScreen(
+                viewModel = viewModel,
+                onNavigateToAbout = { navController.navigate("about") }
+            )
+        }
+        composable("about") {
+            AboutScreen(onBack = { navController.popBackStack() })
+        }
+    }
+}
+
+// ── Main screen composable ────────────────────────────────────────────────────
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
     var showMenu         by rememberSaveable { mutableStateOf(false) }
     var showSortMenu     by rememberSaveable { mutableStateOf(false) }
     var editingCounterId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -83,6 +104,7 @@ fun TrackerApp(viewModel: CounterViewModel) {
 
     // Per-group expanded state: true = expanded (default), false = collapsed
     val groupExpandedState = remember { mutableStateMapOf<String, Boolean>() }
+
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -130,6 +152,7 @@ fun TrackerApp(viewModel: CounterViewModel) {
                             text = { Text("Delete All Counters", color = MaterialTheme.colorScheme.error) },
                             onClick = { showMenu = false; viewModel.removeAllCounters() }
                         )
+                        DropdownMenuItem(text = { Text("About Tracker") }, onClick = { showMenu = false; onNavigateToAbout() })
                     }
                 }
             )
