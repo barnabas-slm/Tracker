@@ -23,3 +23,9 @@ An Android app built with Jetpack Compose and Material Design 3 for managing nam
 
 ### Night Mode
 - Automatically follows the system dark/light theme
+
+### Data Persistence
+- All counters, groups, values, and custom sort order are automatically saved to the device
+- Data persists between app sessions — close and reopen the app to resume where you left off
+
+

@@ -3,8 +3,14 @@ package com.example.tracker.viewmodel
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
 import com.example.tracker.data.Counter
 import com.example.tracker.data.CounterGroup
+import com.example.tracker.data.CustomOrderEntity
+import com.example.tracker.data.TrackerDatabase
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 enum class SortOrder {
@@ -23,7 +29,7 @@ sealed class DisplayItem {
     data class UngroupedCounter(val counter: Counter) : DisplayItem()
 }
 
-class CounterViewModel : ViewModel() {
+class CounterViewModel(private val db: TrackerDatabase) : ViewModel() {
     private val _counters = mutableStateListOf<Counter>()
     val counters: List<Counter> = _counters
 
@@ -38,11 +44,45 @@ class CounterViewModel : ViewModel() {
     private val _customOrder = mutableStateListOf<String>()
 
     private var counterSequence = 0
+    private var groupSequence   = 0
 
     private val _sortOrder = mutableStateOf(SortOrder.CUSTOM)
     val sortOrder = _sortOrder
 
     fun setSortOrder(order: SortOrder) { _sortOrder.value = order }
+
+    // ── Persistence helpers ───────────────────────────────────────────────────
+
+    private fun saveOrder() {
+        viewModelScope.launch {
+            db.customOrderDao().saveOrder(CustomOrderEntity(order = _customOrder.joinToString(",")))
+        }
+    }
+
+    // ── Initialisation — load from DB (or seed defaults if empty) ─────────────
+
+    init {
+        viewModelScope.launch {
+            val savedGroups   = db.counterGroupDao().getAllFlow().first()
+            val savedCounters = db.counterDao().getAllFlow().first()
+            val savedOrder    = db.customOrderDao().getOrderList().firstOrNull()
+
+            if (savedCounters.isEmpty() && savedGroups.isEmpty()) {
+                // First launch — seed three default counters
+                repeat(3) { addCounter() }
+            } else {
+                _groups.addAll(savedGroups)
+                _counters.addAll(savedCounters)
+                groupSequence   = savedGroups.size
+                counterSequence = savedCounters.size
+
+                if (savedOrder != null && savedOrder.isNotBlank()) {
+                    _customOrder.addAll(savedOrder.split(",").filter { it.isNotBlank() })
+                }
+                rebuildCustomOrder()
+            }
+        }
+    }
 
     // ── Custom-order helpers ──────────────────────────────────────────────────
 
@@ -69,6 +109,7 @@ class CounterViewModel : ViewModel() {
         if (from == to || from !in _customOrder.indices || to !in _customOrder.indices) return
         val item = _customOrder.removeAt(from)
         _customOrder.add(to, item)
+        saveOrder()
     }
 
     // ── Unified sorted display list ───────────────────────────────────────────
@@ -116,63 +157,69 @@ class CounterViewModel : ViewModel() {
         }
     }
 
-    // ── Keep legacy helpers for dialog use ────────────────────────────────────
-    fun getCountersInGroup(groupId: String): List<Counter> =
-        _counters.filter { it.groupId == groupId }
-
-    fun getUngroupedCounters(): List<Counter> =
-        _counters.filter { it.groupId == null }
+    // ── Legacy helpers ────────────────────────────────────────────────────────
+    fun getCountersInGroup(groupId: String): List<Counter> = _counters.filter { it.groupId == groupId }
+    fun getUngroupedCounters(): List<Counter> = _counters.filter { it.groupId == null }
 
     // ── Counter CRUD ──────────────────────────────────────────────────────────
-
-    init {
-        addCounter()
-        addCounter()
-        addCounter()
-    }
 
     fun addCounter(name: String? = null, groupId: String? = null) {
         counterSequence++
         val counter = Counter(
-            id = UUID.randomUUID().toString(),
-            name = name ?: "Counter $counterSequence",
-            value = 0,
+            id      = UUID.randomUUID().toString(),
+            name    = name ?: "Counter $counterSequence",
+            value   = 0,
             groupId = groupId
         )
         _counters.add(counter)
-        // If ungrouped, append to custom order immediately
-        if (groupId == null) _customOrder.add("c:${counter.id}")
+        if (groupId == null) {
+            _customOrder.add("c:${counter.id}")
+            saveOrder()
+        }
+        viewModelScope.launch { db.counterDao().upsert(counter) }
     }
 
     fun removeCounter(counterId: String) {
         _counters.removeAll { it.id == counterId }
         _customOrder.remove("c:$counterId")
+        saveOrder()
+        viewModelScope.launch { db.counterDao().deleteById(counterId) }
     }
 
     fun removeAllCounters() {
         val ids = _counters.map { it.id }.toSet()
         _counters.clear()
         _customOrder.removeAll { key -> ids.any { key == "c:$it" } }
+        saveOrder()
+        viewModelScope.launch { db.counterDao().deleteAll() }
     }
 
     fun incrementCounter(counterId: String) {
         val i = _counters.indexOfFirst { it.id == counterId }
-        if (i != -1) _counters[i] = _counters[i].copy(value = _counters[i].value + 1)
+        if (i == -1) return
+        _counters[i] = _counters[i].copy(value = _counters[i].value + 1)
+        viewModelScope.launch { db.counterDao().upsert(_counters[i]) }
     }
 
     fun decrementCounter(counterId: String) {
         val i = _counters.indexOfFirst { it.id == counterId }
-        if (i != -1) _counters[i] = _counters[i].copy(value = _counters[i].value - 1)
+        if (i == -1) return
+        _counters[i] = _counters[i].copy(value = _counters[i].value - 1)
+        viewModelScope.launch { db.counterDao().upsert(_counters[i]) }
     }
 
     fun setCounterValue(counterId: String, value: Int) {
         val i = _counters.indexOfFirst { it.id == counterId }
-        if (i != -1) _counters[i] = _counters[i].copy(value = value)
+        if (i == -1) return
+        _counters[i] = _counters[i].copy(value = value)
+        viewModelScope.launch { db.counterDao().upsert(_counters[i]) }
     }
 
     fun updateCounterName(counterId: String, name: String) {
         val i = _counters.indexOfFirst { it.id == counterId }
-        if (i != -1) _counters[i] = _counters[i].copy(name = name)
+        if (i == -1) return
+        _counters[i] = _counters[i].copy(name = name)
+        viewModelScope.launch { db.counterDao().upsert(_counters[i]) }
     }
 
     fun assignCounterToGroup(counterId: String, groupId: String?) {
@@ -182,17 +229,15 @@ class CounterViewModel : ViewModel() {
         _counters[i] = _counters[i].copy(groupId = groupId)
         val nowUngrouped = groupId == null
         if (wasUngrouped && !nowUngrouped) {
-            // Moved into a group — remove from custom order
             _customOrder.remove("c:$counterId")
         } else if (!wasUngrouped && nowUngrouped) {
-            // Removed from a group — append to custom order
             _customOrder.add("c:$counterId")
         }
+        saveOrder()
+        viewModelScope.launch { db.counterDao().upsert(_counters[i]) }
     }
 
     // ── Group CRUD ────────────────────────────────────────────────────────────
-
-    private var groupSequence = 0
 
     fun addGroup(name: String? = null, colorValue: Long? = null) {
         groupSequence++
@@ -201,13 +246,15 @@ class CounterViewModel : ViewModel() {
             0xFFE53935L, 0xFFF4511EL, 0xFFFFB300L, 0xFFFDD835L, 0xFF43A047L,
             0xFF00897BL, 0xFF1E88E5L, 0xFF3949ABL, 0xFF8E24AAL, 0xFFD81B60L,
         )
-        val usedColors = _groups.map { it.colorValue }.toSet()
+        val usedColors  = _groups.map { it.colorValue }.toSet()
         val chosenColor = colorValue
             ?: paletteColors.firstOrNull { it !in usedColors }
             ?: paletteColors[_groups.size % paletteColors.size]
         val group = CounterGroup(UUID.randomUUID().toString(), resolvedName, chosenColor)
         _groups.add(group)
         _customOrder.add("g:${group.id}")
+        saveOrder()
+        viewModelScope.launch { db.counterGroupDao().upsert(group) }
     }
 
     fun removeGroup(groupId: String) {
@@ -220,15 +267,33 @@ class CounterViewModel : ViewModel() {
                 ungrouped
             } else c
         }
+        saveOrder()
+        viewModelScope.launch {
+            db.counterGroupDao().deleteById(groupId)
+            // Persist ungrouped counters
+            _counters.filter { it.groupId == null }.forEach { db.counterDao().upsert(it) }
+        }
     }
 
     fun updateGroupName(groupId: String, name: String) {
         val i = _groups.indexOfFirst { it.id == groupId }
-        if (i != -1) _groups[i] = _groups[i].copy(name = name)
+        if (i == -1) return
+        _groups[i] = _groups[i].copy(name = name)
+        viewModelScope.launch { db.counterGroupDao().upsert(_groups[i]) }
     }
 
     fun updateGroupColor(groupId: String, colorValue: Long) {
         val i = _groups.indexOfFirst { it.id == groupId }
-        if (i != -1) _groups[i] = _groups[i].copy(colorValue = colorValue)
+        if (i == -1) return
+        _groups[i] = _groups[i].copy(colorValue = colorValue)
+        viewModelScope.launch { db.counterGroupDao().upsert(_groups[i]) }
+    }
+
+    // ── Factory ───────────────────────────────────────────────────────────────
+
+    class Factory(private val db: TrackerDatabase) : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T =
+            CounterViewModel(db) as T
     }
 }

@@ -45,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.tracker.data.Counter
 import com.example.tracker.data.CounterGroup
+import com.example.tracker.data.TrackerDatabase
 import com.example.tracker.ui.components.CounterCard
 import com.example.tracker.ui.components.CounterSettingsDialog
 import com.example.tracker.ui.components.GroupSettingsDialog
@@ -54,7 +55,9 @@ import com.example.tracker.viewmodel.DisplayItem
 import com.example.tracker.viewmodel.SortOrder
 
 class MainActivity : ComponentActivity() {
-    private val counterViewModel: CounterViewModel by viewModels()
+    private val counterViewModel: CounterViewModel by viewModels {
+        CounterViewModel.Factory(TrackerDatabase.getInstance(applicationContext))
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
