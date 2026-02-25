@@ -115,7 +115,22 @@ fun CounterSettingsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Counter Settings") },
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Counter Settings")
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete Counter",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        },
         text = {
             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Title") },
@@ -135,13 +150,6 @@ fun CounterSettingsDialog(
                         groups.forEach { (id, gName) -> GroupChip(gName, selectedGroupId == id) { selectedGroupId = id } }
                     }
                 }
-                HorizontalDivider()
-                Button(onClick = onDelete, modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor   = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                ) { Text("Delete Counter") }
             }
         },
         confirmButton = {
@@ -172,7 +180,22 @@ fun GroupSettingsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Group Settings") },
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Group Settings")
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete Group",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        },
         text = {
             Column(
                 modifier = Modifier
@@ -225,14 +248,6 @@ fun GroupSettingsDialog(
                         onColorChanged = { color = it.toArgb().toLong() and 0xFFFFFFFFL }
                     )
                 }
-
-                HorizontalDivider()
-                Button(onClick = onDelete, modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor   = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                ) { Text("Delete Group") }
             }
         },
         confirmButton = {
