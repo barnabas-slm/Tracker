@@ -41,8 +41,15 @@ jobs:
           chmod +x ./gradlew
           ./gradlew :app:assembleRelease
 
+      - name: Rename APK
+        run: |
+          APK_PATH="$(ls -1 app/build/outputs/apk/release/*.apk | head -n 1)"
+          OUT="Tracker-${{ github.ref_name }}.apk"
+          cp "$APK_PATH" "$OUT"
+          echo "APK_OUT=$OUT" >> "$GITHUB_ENV"
+
       - name: Create GitHub Release and upload APK
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            app/build/outputs/apk/release/*.apk
+            ${{ env.APK_OUT }}
