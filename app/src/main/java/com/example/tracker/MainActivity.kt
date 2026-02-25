@@ -5,8 +5,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -295,6 +296,7 @@ fun GroupCard(
     var expanded by rememberSaveable { mutableStateOf(true) }
     val arrowRotation by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(durationMillis = 300),
         label = "arrowRotation"
     )
 
@@ -303,7 +305,12 @@ fun GroupCard(
         colors    = CardDefaults.cardColors(containerColor = Color(group.colorValue)),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else 2.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(
+            modifier = Modifier
+                .padding(12.dp)
+                .animateContentSize(animationSpec = tween(durationMillis = 300)),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -333,23 +340,21 @@ fun GroupCard(
                     )
                 }
             }
-            AnimatedVisibility(visible = expanded) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    if (counters.isEmpty()) {
-                        Text(
-                            "No counters in this group",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline
+            if (expanded) {
+                if (counters.isEmpty()) {
+                    Text(
+                        "No counters in this group",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                } else {
+                    counters.forEach { counter ->
+                        CounterCard(
+                            counter      = counter,
+                            onIncrement  = { onIncrement(counter.id) },
+                            onDecrement  = { onDecrement(counter.id) },
+                            onTitleClick = { onCounterClick(counter.id) }
                         )
-                    } else {
-                        counters.forEach { counter ->
-                            CounterCard(
-                                counter      = counter,
-                                onIncrement  = { onIncrement(counter.id) },
-                                onDecrement  = { onDecrement(counter.id) },
-                                onTitleClick = { onCounterClick(counter.id) }
-                            )
-                        }
                     }
                 }
             }
