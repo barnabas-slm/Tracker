@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tracker.data.Counter
@@ -71,4 +72,15 @@ fun CounterCard(
             Text("+", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = contentColor)
         }
     }
+}
+
+@Preview
+@Composable
+fun CounterCardPreview() {
+    CounterCard(
+        counter = Counter(id = "1", name = "Sample Counter", value = 42),
+        onIncrement = {},
+        onDecrement = {},
+        onTitleClick = {}
+    )
 }

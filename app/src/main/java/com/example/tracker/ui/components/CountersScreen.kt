@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.tracker.data.Counter
 import com.example.tracker.viewmodel.DisplayItem
@@ -112,5 +113,26 @@ fun CountersScreen(
     }
 }
 
-
+@Preview
+@Composable
+fun CountersScreenPreview() {
+    CountersScreen(
+        displayItems = listOf(
+            DisplayItem.Group(
+                group = com.example.tracker.data.CounterGroup(id = "g1", name = "Group 1", colorValue = 0xFFBB86FC)
+            ),
+            DisplayItem.UngroupedCounter(
+                counter = Counter(id = "c1", name = "Ungrouped Counter", value = 5)
+            )
+        ),
+        sortOrder = SortOrder.CUSTOM,
+        getInGroup = { emptyList() },
+        onIncrement = {},
+        onDecrement = {},
+        onCounterClick = {},
+        onGroupTitleClick = {},
+        onReorder = { _, _ -> },
+        groupExpandedState = mutableMapOf("g1" to true)
+    )
+}
 

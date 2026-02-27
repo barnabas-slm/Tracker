@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.tracker.data.Counter
 
@@ -47,4 +48,14 @@ fun UngroupedCounterCard(
     }
 }
 
+@Preview
+@Composable
+fun UngroupedCounterCardPreview() {
+    UngroupedCounterCard(
+        counter      = Counter(id = "1", name = "Ungrouped Counter", value = 5),
+        onIncrement  = {},
+        onDecrement  = {},
+        onTitleClick = {}
+    )
+}
 

@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.tracker.data.Counter
 import com.example.tracker.data.CounterGroup
@@ -109,6 +110,24 @@ fun GroupCard(
             }
         }
     }
+}
+
+@Preview
+@Composable
+fun GroupCardPreview() {
+    GroupCard(
+        group              = CounterGroup(id = "g1", name = "Sample Group", colorValue = 0xFF6200EE),
+        counters           = listOf(
+            Counter(id = "c1", name = "Counter A", value = 5),
+            Counter(id = "c2", name = "Counter B", value = 10),
+            Counter(id = "c3", name = "Counter C", value = 3)
+        ),
+        onTitleClick       = {},
+        onIncrement        = {},
+        onDecrement        = {},
+        onCounterClick     = {},
+        groupExpandedState = mutableMapOf("g1" to true)
+    )
 }
 
 
