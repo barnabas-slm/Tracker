@@ -24,16 +24,10 @@ android {
 
     signingConfigs {
         create("release") {
-        val storeFilePath = System.getenv("SIGNING_STORE_FILE")
-            ?: throw GradleException("SIGNING_STORE_FILE is not set")
-
-        storeFile = file(storeFilePath)
-        storePassword = System.getenv("SIGNING_STORE_PASSWORD")
-            ?: throw GradleException("SIGNING_STORE_PASSWORD is not set")
-        keyAlias = System.getenv("SIGNING_KEY_ALIAS")
-            ?: throw GradleException("SIGNING_KEY_ALIAS is not set")
-        keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
-            ?: throw GradleException("SIGNING_KEY_PASSWORD is not set")
+            storeFile = file(System.getenv("SIGNING_STORE_FILE") ?: "keystore.jks")
+            storePassword = System.getenv("SIGNING_STORE_PASSWORD")
+            keyAlias = System.getenv("SIGNING_KEY_ALIAS")
+            keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
     }
     }
 
