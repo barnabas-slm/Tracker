@@ -24,11 +24,17 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file(System.getenv("SIGNING_STORE_FILE") ?: "keystore.jks")
-            storePassword = System.getenv("SIGNING_STORE_PASSWORD")
-            keyAlias = System.getenv("SIGNING_KEY_ALIAS")
-            keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
-        }
+        val storeFilePath = System.getenv("SIGNING_STORE_FILE")
+            ?: throw GradleException("SIGNING_STORE_FILE is not set")
+
+        storeFile = file(storeFilePath)
+        storePassword = System.getenv("SIGNING_STORE_PASSWORD")
+            ?: throw GradleException("SIGNING_STORE_PASSWORD is not set")
+        keyAlias = System.getenv("SIGNING_KEY_ALIAS")
+            ?: throw GradleException("SIGNING_KEY_ALIAS is not set")
+        keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
+            ?: throw GradleException("SIGNING_KEY_PASSWORD is not set")
+    }
     }
 
     buildTypes {
@@ -46,6 +52,21 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+
+    applicationVariants.all {
+        if (buildType.name == "release") {
+            val required = listOf(
+                "SIGNING_STORE_FILE",
+                "SIGNING_STORE_PASSWORD",
+                "SIGNING_KEY_ALIAS",
+                "SIGNING_KEY_PASSWORD"
+            )
+            val missing = required.filter { System.getenv(it).isNullOrBlank() }
+            if (missing.isNotEmpty()) {
+                throw GradleException("Missing signing env vars for release build: $missing")
+            }
+        }
     }
 }
 
