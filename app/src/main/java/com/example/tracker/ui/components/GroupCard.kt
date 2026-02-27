@@ -53,7 +53,7 @@ fun GroupCard(
     Card(
         modifier  = modifier.fillMaxWidth(),
         colors    = CardDefaults.cardColors(containerColor = Color(group.colorValue)),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else 0.dp)
     ) {
         Column(
             modifier = Modifier

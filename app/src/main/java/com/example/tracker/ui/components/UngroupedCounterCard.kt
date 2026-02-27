@@ -26,7 +26,7 @@ fun UngroupedCounterCard(
     Card(
         modifier  = modifier.fillMaxWidth(),
         colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else 0.dp)
     ) {
         // The drag handle covers the whole card row — long-press anywhere on it to drag
         Row(

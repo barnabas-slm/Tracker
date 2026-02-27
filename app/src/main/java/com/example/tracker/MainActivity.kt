@@ -12,7 +12,7 @@ import com.example.tracker.viewmodel.CounterViewModel
 
 class MainActivity : ComponentActivity() {
     private val counterViewModel: CounterViewModel by viewModels {
-        CounterViewModel.Factory(TrackerDatabase.getInstance(applicationContext))
+        CounterViewModel.Factory(TrackerDatabase.getInstance(applicationContext), applicationContext)
     }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

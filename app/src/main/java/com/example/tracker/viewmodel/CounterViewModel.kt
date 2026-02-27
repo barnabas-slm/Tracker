@@ -1,7 +1,13 @@
 package com.example.tracker.viewmodel
 
+import android.content.Context
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -12,6 +18,8 @@ import com.example.tracker.data.TrackerDatabase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.UUID
+
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 enum class SortOrder {
     CUSTOM,
@@ -29,7 +37,13 @@ sealed class DisplayItem {
     data class UngroupedCounter(val counter: Counter) : DisplayItem()
 }
 
-class CounterViewModel(private val db: TrackerDatabase) : ViewModel() {
+class CounterViewModel(private val db: TrackerDatabase, context: Context) : ViewModel() {
+
+    private val dataStore = context.dataStore
+
+    companion object {
+        private val KEY_SORT_ORDER = stringPreferencesKey("sort_order")
+    }
     private val _counters = mutableStateListOf<Counter>()
     val counters: List<Counter> = _counters
 
@@ -49,7 +63,12 @@ class CounterViewModel(private val db: TrackerDatabase) : ViewModel() {
     private val _sortOrder = mutableStateOf(SortOrder.CUSTOM)
     val sortOrder = _sortOrder
 
-    fun setSortOrder(order: SortOrder) { _sortOrder.value = order }
+    fun setSortOrder(order: SortOrder) {
+        _sortOrder.value = order
+        viewModelScope.launch {
+            dataStore.edit { prefs -> prefs[KEY_SORT_ORDER] = order.name }
+        }
+    }
 
     /** Key of the most recently added item ("g:<id>" or "c:<id>"). Null after consumed. */
     private val _lastAddedKey = mutableStateOf<String?>(null)
@@ -70,6 +89,13 @@ class CounterViewModel(private val db: TrackerDatabase) : ViewModel() {
 
     init {
         viewModelScope.launch {
+            // Restore sort order
+            val savedSortOrder = dataStore.data.first()[KEY_SORT_ORDER]
+            if (savedSortOrder != null) {
+                _sortOrder.value = runCatching { SortOrder.valueOf(savedSortOrder) }
+                    .getOrDefault(SortOrder.CUSTOM)
+            }
+
             val savedGroups   = db.counterGroupDao().getAllFlow().first()
             val savedCounters = db.counterDao().getAllFlow().first()
             val savedOrder    = db.customOrderDao().getOrderList().firstOrNull()
@@ -300,9 +326,9 @@ class CounterViewModel(private val db: TrackerDatabase) : ViewModel() {
 
     // ── Factory ───────────────────────────────────────────────────────────────
 
-    class Factory(private val db: TrackerDatabase) : ViewModelProvider.Factory {
+    class Factory(private val db: TrackerDatabase, private val context: Context) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            CounterViewModel(db) as T
+            CounterViewModel(db, context) as T
     }
 }
