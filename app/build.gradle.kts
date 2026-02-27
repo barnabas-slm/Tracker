@@ -39,6 +39,8 @@ android {
 
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release")
+
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -52,21 +54,6 @@ android {
     }
     buildFeatures {
         compose = true
-    }
-
-    applicationVariants.all {
-        if (buildType.name == "release") {
-            val required = listOf(
-                "SIGNING_STORE_FILE",
-                "SIGNING_STORE_PASSWORD",
-                "SIGNING_KEY_ALIAS",
-                "SIGNING_KEY_PASSWORD"
-            )
-            val missing = required.filter { System.getenv(it).isNullOrBlank() }
-            if (missing.isNotEmpty()) {
-                throw GradleException("Missing signing env vars for release build: $missing")
-            }
-        }
     }
 }
 
