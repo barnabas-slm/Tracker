@@ -40,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -168,6 +169,8 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
             onGroupTitleClick  = { editingGroupId = it },
             onReorder          = { from, to -> viewModel.reorderItems(from, to) },
             groupExpandedState = groupExpandedState,
+            lastAddedKey       = viewModel.lastAddedKey.value,
+            onLastAddedConsumed = { viewModel.consumeLastAddedKey() },
             modifier           = Modifier.padding(innerPadding)
         )
     }
@@ -220,6 +223,8 @@ fun CountersScreen(
     onGroupTitleClick: (String) -> Unit,
     onReorder: (from: Int, to: Int) -> Unit,
     groupExpandedState: MutableMap<String, Boolean>,
+    lastAddedKey: String? = null,
+    onLastAddedConsumed: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     if (displayItems.isEmpty()) {
@@ -237,6 +242,22 @@ fun CountersScreen(
     val lazyListState    = rememberLazyListState()
     val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
         onReorder(from.index, to.index)
+    }
+
+    // Scroll to newly added item
+    LaunchedEffect(lastAddedKey) {
+        if (lastAddedKey != null) {
+            val index = displayItems.indexOfFirst { item ->
+                when (item) {
+                    is DisplayItem.Group            -> "g:${item.group.id}" == lastAddedKey
+                    is DisplayItem.UngroupedCounter -> "c:${item.counter.id}" == lastAddedKey
+                }
+            }
+            if (index != -1) {
+                lazyListState.animateScrollToItem(index)
+            }
+            onLastAddedConsumed()
+        }
     }
 
     LazyColumn(

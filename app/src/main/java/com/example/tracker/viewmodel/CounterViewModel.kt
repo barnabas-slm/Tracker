@@ -51,6 +51,13 @@ class CounterViewModel(private val db: TrackerDatabase) : ViewModel() {
 
     fun setSortOrder(order: SortOrder) { _sortOrder.value = order }
 
+    /** Key of the most recently added item ("g:<id>" or "c:<id>"). Null after consumed. */
+    private val _lastAddedKey = mutableStateOf<String?>(null)
+    val lastAddedKey = _lastAddedKey
+
+    /** Call this after the UI has scrolled to the new item. */
+    fun consumeLastAddedKey() { _lastAddedKey.value = null }
+
     // ── Persistence helpers ───────────────────────────────────────────────────
 
     private fun saveOrder() {
@@ -175,6 +182,7 @@ class CounterViewModel(private val db: TrackerDatabase) : ViewModel() {
         if (groupId == null) {
             _customOrder.add("c:${counter.id}")
             saveOrder()
+            _lastAddedKey.value = "c:${counter.id}"
         }
         viewModelScope.launch { db.counterDao().upsert(counter) }
     }
@@ -254,6 +262,7 @@ class CounterViewModel(private val db: TrackerDatabase) : ViewModel() {
         _groups.add(group)
         _customOrder.add("g:${group.id}")
         saveOrder()
+        _lastAddedKey.value = "g:${group.id}"
         viewModelScope.launch { db.counterGroupDao().upsert(group) }
     }
 
