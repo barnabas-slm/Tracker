@@ -63,10 +63,19 @@ After every mutation call `rebuildCustomOrder()` (it reconciles additions/deleti
 
 | Alias | Library | Purpose |
 |---|---|---|
-| `reorderable` | `sh.calvin.reorderable` 2.4.3 | Drag-to-reorder in `CountersScreen` |
 | `androidx.room.*` | Room 2.7.0 | Local DB (KSP-generated DAOs) |
 | `androidx.datastore.preferences` | DataStore 1.1.7 | Sort-order preference |
 | `androidx.navigation.compose` | Navigation 2.9.0 | `TrackerApp` NavHost |
+
+## Custom Drag-to-Reorder (`ui/components/ReorderableList.kt`)
+
+Drag-to-reorder is implemented in-project (no third-party library).
+
+- `ReorderState` holds `draggingIndex: Int?` and `draggingOffset: Float` (both `mutableStateOf`)
+- Items register their stable key → current index via `registerItem(key, index)` called from a `SideEffect` on every recomposition. This decouples the stable `pointerInput` key from the ever-changing index.
+- Each item applies `Modifier.pointerInput(stableKey, reorderState) { detectDragGesturesAfterLongPress(...) }` as its drag handle. Using `stableKey` (not index) ensures the gesture coroutine is NOT restarted when items swap positions.
+- Swap threshold: when `|draggingOffset| >= adjacentItem.size / 2`. After swap, offset is adjusted by the distance between the two items' `LazyListItemInfo.offset` values so the item stays visually under the finger.
+- `rememberReorderState(lazyListState, onMove)` is the composable factory; `onMove` is refreshed each frame via `SideEffect`.
 
 ## Navigation
 
