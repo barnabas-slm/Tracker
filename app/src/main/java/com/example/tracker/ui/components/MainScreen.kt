@@ -23,12 +23,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.content.FileProvider
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import android.content.Intent
 import com.example.tracker.viewmodel.CounterViewModel
 import com.example.tracker.viewmodel.SortOrder
+import java.io.File
 
 @Composable
 fun TrackerApp(viewModel: CounterViewModel) {
@@ -49,6 +53,7 @@ fun TrackerApp(viewModel: CounterViewModel) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
+    val context = LocalContext.current
     var showMenu         by rememberSaveable { mutableStateOf(false) }
     var showSortMenu     by rememberSaveable { mutableStateOf(false) }
     var editingCounterId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -56,6 +61,20 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
 
     // Per-group expanded state: true = expanded (default), false = collapsed
     val groupExpandedState = remember { mutableStateMapOf<String, Boolean>() }
+
+    fun shareCsv() {
+        val csv = viewModel.buildCsvExport()
+        val exportDir = File(context.cacheDir, "export").also { it.mkdirs() }
+        val file = File(exportDir, "counters.csv").also { it.writeText(csv) }
+        val uri = FileProvider.getUriForFile(context, "com.example.tracker.fileprovider", file)
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/csv"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_SUBJECT, "Tracker counters export")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(Intent.createChooser(intent, "Export CSV"))
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -99,6 +118,7 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                             showMenu = false
                             viewModel.groups.forEach { groupExpandedState[it.id] = true }
                         })
+                        DropdownMenuItem(text = { Text("Export CSV") }, onClick = { showMenu = false; shareCsv() })
                         DropdownMenuItem(
                             text = { Text("Delete All Counters", color = MaterialTheme.colorScheme.error) },
                             onClick = { showMenu = false; viewModel.removeAllCounters() }
