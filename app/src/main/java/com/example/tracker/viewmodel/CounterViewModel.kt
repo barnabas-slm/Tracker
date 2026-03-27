@@ -324,6 +324,37 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
         viewModelScope.launch { db.counterGroupDao().upsert(_groups[i]) }
     }
 
+    // ── Export ───────────────────────────────────────────────────────────────
+
+    /**
+     * Builds a CSV string with columns: Group, Counter, Value.
+     * Ungrouped counters have an empty Group field.
+     * Field values containing commas or quotes are properly quoted.
+     */
+    fun buildCsvExport(): String {
+        fun csvField(value: String): String =
+            if (value.contains(',') || value.contains('"') || value.contains('\n'))
+                "\"${value.replace("\"", "\"\"")}\""
+            else value
+
+        val sb = StringBuilder()
+        sb.appendLine("Group,Counter,Value")
+
+        // Ungrouped counters
+        _counters.filter { it.groupId == null }.forEach { c ->
+            sb.appendLine(",${csvField(c.name)},${c.value}")
+        }
+
+        // Grouped counters
+        _groups.forEach { g ->
+            _counters.filter { it.groupId == g.id }.forEach { c ->
+                sb.appendLine("${csvField(g.name)},${csvField(c.name)},${c.value}")
+            }
+        }
+
+        return sb.toString()
+    }
+
     // ── Factory ───────────────────────────────────────────────────────────────
 
     class Factory(private val db: TrackerDatabase, private val context: Context) : ViewModelProvider.Factory {
