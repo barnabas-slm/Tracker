@@ -9,9 +9,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.tracker.data.Counter
+
+/** Returns black or white depending on which has better contrast with [this] color. */
+private fun Color.contrastTextColor(): Color {
+    // Perceived luminance (sRGB, un-linearised approximation — sufficient for palette picking)
+    val luminance = 0.299f * red + 0.587f * green + 0.114f * blue
+    return if (luminance > 0.6f) Color(0xFF212121) else Color.White
+}
 
 @Composable
 fun UngroupedCounterCard(
@@ -23,9 +31,13 @@ fun UngroupedCounterCard(
     isDragging: Boolean = false,
     dragModifier: Modifier = Modifier
 ) {
+    val bgColor = counter.color?.let { Color(it) } ?: MaterialTheme.colorScheme.surfaceVariant
+    val textColor = if (counter.color != null) bgColor.contrastTextColor()
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+
     Card(
         modifier  = modifier.fillMaxWidth(),
-        colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors    = CardDefaults.cardColors(containerColor = bgColor),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else 0.dp)
     ) {
         // The drag handle covers the whole card row — long-press anywhere on it to drag
@@ -42,7 +54,7 @@ fun UngroupedCounterCard(
                 onDecrement  = onDecrement,
                 onTitleClick = onTitleClick,
                 modifier     = Modifier.fillMaxWidth(),
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                contentColor = textColor
             )
         }
     }
@@ -52,7 +64,7 @@ fun UngroupedCounterCard(
 @Composable
 fun UngroupedCounterCardPreview() {
     UngroupedCounterCard(
-        counter      = Counter(id = "1", name = "Ungrouped Counter", value = 5),
+        counter      = Counter(id = "1", name = "Ungrouped Counter", value = 5, color = 0xFF90CAF9L),
         onIncrement  = {},
         onDecrement  = {},
         onTitleClick = {}

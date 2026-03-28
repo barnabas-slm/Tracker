@@ -8,7 +8,8 @@ data class Counter(
     @PrimaryKey val id: String = "",
     val name: String = "Counter",
     val value: Int = 0,
-    val groupId: String? = null
+    val groupId: String? = null,
+    val color: Long? = null
 )
 
 @Entity(tableName = "counter_groups")

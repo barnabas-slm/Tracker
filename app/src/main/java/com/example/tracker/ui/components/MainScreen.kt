@@ -186,11 +186,13 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
             counterValue   = counter.value,
             groups         = viewModel.groups.map { it.id to it.name },
             currentGroupId = counter.groupId,
+            currentColor   = counter.color,
             onDismiss      = { editingCounterId = null },
-            onSave         = { newName, newValue, newGroupId ->
+            onSave         = { newName, newValue, newGroupId, newColor ->
                 viewModel.updateCounterName(cid, newName)
                 viewModel.setCounterValue(cid, newValue)
                 viewModel.assignCounterToGroup(cid, newGroupId)
+                viewModel.updateCounterColor(cid, newColor)
                 editingCounterId = null
             },
             onDelete = { viewModel.removeCounter(cid); editingCounterId = null }

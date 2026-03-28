@@ -246,11 +246,21 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
 
     fun addCounter(name: String? = null, groupId: String? = null) {
         counterSequence++
+        val paletteColors = listOf(
+            0xFFF48FB1L, 0xFFEF9A9AL, 0xFFFFCC80L, 0xFFFFE082L, 0xFFFFF59DL,
+            0xFFA5D6A7L, 0xFF80CBC4L, 0xFF90CAF9L, 0xFF9FA8DAL, 0xFFCE93D8L
+        )
+        val autoColor: Long? = if (groupId == null) {
+            val usedColors = _counters.filter { it.groupId == null }.mapNotNull { it.color }.toSet()
+            paletteColors.firstOrNull { it !in usedColors }
+                ?: paletteColors[counterSequence % paletteColors.size]
+        } else null
         val counter = Counter(
             id      = UUID.randomUUID().toString(),
             name    = name ?: "Counter $counterSequence",
             value   = 0,
-            groupId = groupId
+            groupId = groupId,
+            color   = autoColor
         )
         _counters.add(counter)
         if (groupId == null) {
@@ -303,6 +313,13 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
         val i = _counters.indexOfFirst { it.id == counterId }
         if (i == -1) return
         _counters[i] = _counters[i].copy(name = name)
+        viewModelScope.launch { db.counterDao().upsert(_counters[i]) }
+    }
+
+    fun updateCounterColor(counterId: String, colorValue: Long?) {
+        val i = _counters.indexOfFirst { it.id == counterId }
+        if (i == -1) return
+        _counters[i] = _counters[i].copy(color = colorValue)
         viewModelScope.launch { db.counterDao().upsert(_counters[i]) }
     }
 
