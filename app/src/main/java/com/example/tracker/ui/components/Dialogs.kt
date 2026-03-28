@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,9 +23,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
@@ -58,6 +62,19 @@ val groupColorOptions: List<Pair<String, Long>> = listOf(
     "Indigo" to 0xFF3949ABL,
     "Purple" to 0xFF8E24AAL,
     "Pink"   to 0xFFD81B60L,
+)
+
+val counterColorOptions: List<Pair<String, Long>> = listOf(
+    "Blush"      to 0xFFF48FB1L,
+    "Rose"       to 0xFFEF9A9AL,
+    "Peach"      to 0xFFFFCC80L,
+    "Butter"     to 0xFFFFE082L,
+    "Lemon"      to 0xFFFFF59DL,
+    "Mint"       to 0xFFA5D6A7L,
+    "Aqua"       to 0xFF80CBC4L,
+    "Sky"        to 0xFF90CAF9L,
+    "Periwinkle" to 0xFF9FA8DAL,
+    "Lavender"   to 0xFFCE93D8L,
 )
 
 // ── Add counter ───────────────────────────────────────────────────────────────
@@ -99,19 +116,24 @@ fun AddGroupDialog(onDismiss: () -> Unit, onAdd: (String) -> Unit) {
 }
 
 // ── Counter settings dialog ───────────────────────────────────────────────────
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun CounterSettingsDialog(
     counterName: String,
     counterValue: Int,
     groups: List<Pair<String, String>>,
     currentGroupId: String?,
+    currentColor: Long?,
     onDismiss: () -> Unit,
-    onSave: (newName: String, newValue: Int, newGroupId: String?) -> Unit,
+    onSave: (newName: String, newValue: Int, newGroupId: String?, newColor: Long?) -> Unit,
     onDelete: () -> Unit,
 ) {
     var name  by remember { mutableStateOf(counterName) }
     var value by remember { mutableStateOf(counterValue.toString()) }
-    var selectedGroupId by remember { mutableStateOf(currentGroupId) }
+    var selectedGroupId      by remember { mutableStateOf(currentGroupId) }
+    var selectedColor        by remember { mutableStateOf(currentColor) }
+    var showCustomPicker     by remember { mutableStateOf(false) }
+    var groupDropdownExpanded by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -132,29 +154,103 @@ fun CounterSettingsDialog(
             }
         },
         text = {
-            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Title") },
                     modifier = Modifier.fillMaxWidth(), singleLine = true)
                 OutlinedTextField(value = value, onValueChange = { value = it }, label = { Text("Value") },
                     modifier = Modifier.fillMaxWidth(), singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-                Text("Group", style = MaterialTheme.typography.labelLarge)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 160.dp)
-                        .verticalScroll(rememberScrollState())
+
+                val selectedGroupName = groups.find { it.first == selectedGroupId }?.second ?: "None"
+                ExposedDropdownMenuBox(
+                    expanded = groupDropdownExpanded,
+                    onExpandedChange = { groupDropdownExpanded = it }
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        GroupChip("None", selectedGroupId == null) { selectedGroupId = null }
-                        groups.forEach { (id, gName) -> GroupChip(gName, selectedGroupId == id) { selectedGroupId = id } }
+                    OutlinedTextField(
+                        value = selectedGroupName,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Group") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = groupDropdownExpanded) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                    )
+                    ExposedDropdownMenu(
+                        expanded = groupDropdownExpanded,
+                        onDismissRequest = { groupDropdownExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("None") },
+                            onClick = { selectedGroupId = null; groupDropdownExpanded = false }
+                        )
+                        groups.forEach { (id, gName) ->
+                            DropdownMenuItem(
+                                text = { Text(gName) },
+                                onClick = { selectedGroupId = id; groupDropdownExpanded = false }
+                            )
+                        }
+                    }
+                }
+
+                // Color section — only visible for ungrouped counters
+                if (selectedGroupId == null) {
+                    val isPaletteColor = counterColorOptions.any { it.second == selectedColor }
+                    Text("Color", style = MaterialTheme.typography.labelLarge)
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement   = Arrangement.spacedBy(8.dp)
+                    ) {
+                        counterColorOptions.forEach { (_, cv) ->
+                            ColorSwatch(cv, selected = cv == selectedColor && !showCustomPicker) {
+                                selectedColor = cv
+                                showCustomPicker = false
+                            }
+                        }
+                        // Custom swatch
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (showCustomPicker || (selectedColor != null && !isPaletteColor))
+                                        Color(selectedColor ?: 0xFFF48FB1L)
+                                    else Color(0xFFCCCCCC)
+                                )
+                                .then(
+                                    if (showCustomPicker || (selectedColor != null && !isPaletteColor))
+                                        Modifier.border(3.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                                    else Modifier
+                                )
+                                .clickable { showCustomPicker = true },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("✎", fontSize = 14.sp, color = Color.White)
+                        }
+                    }
+                    if (showCustomPicker) {
+                        HsvColorPicker(
+                            initialColor = Color(selectedColor ?: 0xFFF48FB1L),
+                            onColorChanged = { selectedColor = it.toArgb().toLong() and 0xFFFFFFFFL }
+                        )
                     }
                 }
             }
         },
         confirmButton = {
             Button(onClick = {
-                onSave(name.trim().ifBlank { counterName }, value.toIntOrNull() ?: counterValue, selectedGroupId)
+                onSave(
+                    name.trim().ifBlank { counterName },
+                    value.toIntOrNull() ?: counterValue,
+                    selectedGroupId,
+                    selectedColor
+                )
             }) { Text("Save") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }

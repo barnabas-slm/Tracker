@@ -2,6 +2,7 @@ package com.example.tracker.ui.components
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.DropdownMenu
@@ -10,10 +11,14 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -87,19 +92,46 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                 ),
                 actions = {
                     // Sort — opens bottom sheet
-                    IconButton(onClick = { showSortSheet = true }) {
-                        Icon(Icons.Default.SwapVert, contentDescription = "Sort")
+                    TooltipBox(
+                        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                        tooltip = { PlainTooltip { Text("Sort") } },
+                        state = rememberTooltipState()
+                    ) {
+                        IconButton(onClick = { showSortSheet = true }) {
+                            Icon(Icons.Default.SwapVert, contentDescription = "Sort")
+                        }
+                    }
+                    // Add group
+                    TooltipBox(
+                        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                        tooltip = { PlainTooltip { Text("Add Group") } },
+                        state = rememberTooltipState()
+                    ) {
+                        IconButton(onClick = { viewModel.addGroup() }) {
+                            Icon(Icons.Default.CreateNewFolder, contentDescription = "Add Group")
+                        }
                     }
                     // Add counter
-                    IconButton(onClick = { viewModel.addCounter() }) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Counter")
+                    TooltipBox(
+                        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                        tooltip = { PlainTooltip { Text("Add Counter") } },
+                        state = rememberTooltipState()
+                    ) {
+                        IconButton(onClick = { viewModel.addCounter() }) {
+                            Icon(Icons.Default.Add, contentDescription = "Add Counter")
+                        }
                     }
                     // Overflow
-                    IconButton(onClick = { showMenu = true }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                    TooltipBox(
+                        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                        tooltip = { PlainTooltip { Text("More options") } },
+                        state = rememberTooltipState()
+                    ) {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                        }
                     }
                     DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                        DropdownMenuItem(text = { Text("Add Group") }, onClick = { showMenu = false; viewModel.addGroup() })
                         DropdownMenuItem(text = { Text("Collapse All") }, onClick = {
                             showMenu = false
                             viewModel.groups.forEach { groupExpandedState[it.id] = false }
@@ -154,11 +186,13 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
             counterValue   = counter.value,
             groups         = viewModel.groups.map { it.id to it.name },
             currentGroupId = counter.groupId,
+            currentColor   = counter.color,
             onDismiss      = { editingCounterId = null },
-            onSave         = { newName, newValue, newGroupId ->
+            onSave         = { newName, newValue, newGroupId, newColor ->
                 viewModel.updateCounterName(cid, newName)
                 viewModel.setCounterValue(cid, newValue)
                 viewModel.assignCounterToGroup(cid, newGroupId)
+                viewModel.updateCounterColor(cid, newColor)
                 editingCounterId = null
             },
             onDelete = { viewModel.removeCounter(cid); editingCounterId = null }
