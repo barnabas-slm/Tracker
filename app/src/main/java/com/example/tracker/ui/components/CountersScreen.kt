@@ -91,7 +91,7 @@ fun CountersScreen(
             // SideEffect runs after composition, before the frame is rendered.
             SideEffect { reorderState.registerItem(stableKey, index) }
 
-            val isDragging = reorderState.draggingIndex == index
+            val isDragging = reorderState.isDragging(stableKey)
 
             // Long-press drag handle — applied to the drag-sensitive region inside each card.
             // Uses stableKey (not index) so the pointerInput coroutine survives reorders.

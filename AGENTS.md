@@ -71,10 +71,10 @@ After every mutation call `rebuildCustomOrder()` (it reconciles additions/deleti
 
 Drag-to-reorder is implemented in-project (no third-party library).
 
-- `ReorderState` holds `draggingIndex: Int?` and `draggingOffset: Float` (both `mutableStateOf`)
-- Items register their stable key → current index via `registerItem(key, index)` called from a `SideEffect` on every recomposition. This decouples the stable `pointerInput` key from the ever-changing index.
+- `ReorderState` holds `draggingKey: String?` and `draggingOffset: Float` as drag state; current index is derived from the registered key → index map
+- Drag ownership is tracked by stable key (`draggingKey`), not by index. Items register stable key → current index via `registerItem(key, index)` from a `SideEffect` on every recomposition.
 - Each item applies `Modifier.pointerInput(stableKey, reorderState) { detectDragGesturesAfterLongPress(...) }` as its drag handle. Using `stableKey` (not index) ensures the gesture coroutine is NOT restarted when items swap positions.
-- Swap threshold: when `|draggingOffset| >= adjacentItem.size / 2`. After swap, offset is adjusted by the distance between the two items' `LazyListItemInfo.offset` values so the item stays visually under the finger.
+- Swap threshold: when the dragged item's **centre** crosses the adjacent item's centre. After swap, offset is adjusted by the distance between the two items' `LazyListItemInfo.offset` values so the item stays visually under the finger.
 - `rememberReorderState(lazyListState, onMove)` is the composable factory; `onMove` is refreshed each frame via `SideEffect`.
 
 ## Navigation
