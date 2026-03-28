@@ -31,7 +31,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import android.content.Intent
 import com.example.tracker.viewmodel.CounterViewModel
-import com.example.tracker.viewmodel.SortOrder
 import java.io.File
 
 @Composable
@@ -55,7 +54,7 @@ fun TrackerApp(viewModel: CounterViewModel) {
 fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
     val context = LocalContext.current
     var showMenu         by rememberSaveable { mutableStateOf(false) }
-    var showSortMenu     by rememberSaveable { mutableStateOf(false) }
+    var showSortSheet    by rememberSaveable { mutableStateOf(false) }
     var editingCounterId by rememberSaveable { mutableStateOf<String?>(null) }
     var editingGroupId   by rememberSaveable { mutableStateOf<String?>(null) }
 
@@ -87,18 +86,9 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                     actionIconContentColor = MaterialTheme.colorScheme.onSurface
                 ),
                 actions = {
-                    // Sort
-                    IconButton(onClick = { showSortMenu = true }) {
+                    // Sort — opens bottom sheet
+                    IconButton(onClick = { showSortSheet = true }) {
                         Icon(Icons.Default.SwapVert, contentDescription = "Sort")
-                    }
-                    DropdownMenu(expanded = showSortMenu, onDismissRequest = { showSortMenu = false }) {
-                        val cur = viewModel.sortOrder.value
-                        fun bold(o: SortOrder) = if (cur == o) FontWeight.Bold else FontWeight.Normal
-                        DropdownMenuItem(text = { Text("Custom Order",       fontWeight = bold(SortOrder.CUSTOM))         }, onClick = { viewModel.setSortOrder(SortOrder.CUSTOM);         showSortMenu = false })
-                        DropdownMenuItem(text = { Text("Value: High to Low", fontWeight = bold(SortOrder.VALUE_HIGH_LOW)) }, onClick = { viewModel.setSortOrder(SortOrder.VALUE_HIGH_LOW); showSortMenu = false })
-                        DropdownMenuItem(text = { Text("Value: Low to High", fontWeight = bold(SortOrder.VALUE_LOW_HIGH)) }, onClick = { viewModel.setSortOrder(SortOrder.VALUE_LOW_HIGH); showSortMenu = false })
-                        DropdownMenuItem(text = { Text("Alphabetical: A → Z",fontWeight = bold(SortOrder.ALPHA_AZ))      }, onClick = { viewModel.setSortOrder(SortOrder.ALPHA_AZ);        showSortMenu = false })
-                        DropdownMenuItem(text = { Text("Alphabetical: Z → A",fontWeight = bold(SortOrder.ALPHA_ZA))      }, onClick = { viewModel.setSortOrder(SortOrder.ALPHA_ZA);        showSortMenu = false })
                     }
                     // Add counter
                     IconButton(onClick = { viewModel.addCounter() }) {
@@ -145,6 +135,16 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
         )
     }
 
+    // ── Sort bottom sheet ─────────────────────────────────────────────────────
+
+    if (showSortSheet) {
+        SortBottomSheet(
+            currentSortOrder  = viewModel.sortOrder.value,
+            onSortOrderChange = { viewModel.setSortOrder(it) },
+            onDismiss         = { showSortSheet = false }
+        )
+    }
+
     // ── Dialogs ───────────────────────────────────────────────────────────────
 
     editingCounterId?.let { cid ->
@@ -180,6 +180,4 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
         )
     }
 }
-
-
 

@@ -17,6 +17,7 @@ MainActivity
 - `data/` — Room entities (`Counter`, `CounterGroup`, `CustomOrderEntity`), DAOs, `TrackerDatabase` singleton
 - `viewmodel/CounterViewModel.kt` — single ViewModel; in-memory `mutableStateListOf` is the source of truth; DB is write-through persistence only (loaded once at `init`)
 - `ui/components/` — all Composables; `ui/theme/` — Material3 theme
+- `MainScreen.shareCsv()` + `CounterViewModel.buildCsvExport()` implement CSV export; Android sharing is wired via `AndroidManifest.xml` `FileProvider` + `res/xml/file_paths.xml`
 
 ## Key Data Model Patterns
 
@@ -36,7 +37,7 @@ sealed class DisplayItem {
 Only **ungrouped** counters appear in `DisplayItem` / `_customOrder`; grouped counters are accessed via `getCountersInGroup(groupId)`.
 
 ### Custom order invariant
-After every mutation call `rebuildCustomOrder()` (it reconciles additions/deletions). `_customOrder` entries must always use the `"g:"` / `"c:"` prefix. See `reorderItems()` and `assignCounterToGroup()` for mutation patterns.
+Mutations usually update `_customOrder` directly and persist with `saveOrder()`. `rebuildCustomOrder()` is the reconciliation guard before custom-order reads/reorders (see `sortedDisplayItems()` and `reorderItems()`). `_customOrder` entries must always use the `"g:"` / `"c:"` prefix.
 
 ### Scroll-to-new-item signal
 `_lastAddedKey` is set in `addCounter()`/`addGroup()` and cleared by `consumeLastAddedKey()` after the UI scrolls. Replicate this pattern when adding new top-level item types.
@@ -46,11 +47,13 @@ After every mutation call `rebuildCustomOrder()` (it reconciles additions/deleti
 - ViewModel state is `mutableStateListOf<>` / `mutableStateOf<>` — **not** StateFlow/LiveData
 - `groupExpandedState: mutableStateMapOf<String, Boolean>` lives in `MainScreen` (UI-only, not persisted)
 - Sort preference persisted via **DataStore** (`settings`); all other data via Room
+- Value-based sorting uses `_valueSortSnapshot`; snapshot refresh is debounced by 3s in `scheduleValueSortSnapshot()` so VALUE sorts do not re-order on every +/- tap
 
 ## Auto-naming & Auto-color
 
 - `counterSequence` / `groupSequence` are incremented monotonically on each add (not reset on delete)
 - Group color auto-picks from the 10-color palette in `addGroup()` (avoids colors already in use, cycles by index as fallback); same palette is defined in `Dialogs.kt` as `groupColorOptions`
+- `GroupSettingsDialog` supports custom HSV colors; persist raw ARGB `Long` values (do not assume colors are limited to `groupColorOptions`)
 
 ## Build System
 
