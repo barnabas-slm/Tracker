@@ -2,6 +2,7 @@ package com.example.tracker.ui.components
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.DropdownMenu
@@ -90,6 +91,10 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                     IconButton(onClick = { showSortSheet = true }) {
                         Icon(Icons.Default.SwapVert, contentDescription = "Sort")
                     }
+                    // Add group
+                    IconButton(onClick = { viewModel.addGroup() }) {
+                        Icon(Icons.Default.CreateNewFolder, contentDescription = "Add Group")
+                    }
                     // Add counter
                     IconButton(onClick = { viewModel.addCounter() }) {
                         Icon(Icons.Default.Add, contentDescription = "Add Counter")
@@ -99,7 +104,6 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                         Icon(Icons.Default.MoreVert, contentDescription = "More options")
                     }
                     DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                        DropdownMenuItem(text = { Text("Add Group") }, onClick = { showMenu = false; viewModel.addGroup() })
                         DropdownMenuItem(text = { Text("Collapse All") }, onClick = {
                             showMenu = false
                             viewModel.groups.forEach { groupExpandedState[it.id] = false }
