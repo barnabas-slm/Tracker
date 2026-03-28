@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,9 +23,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
@@ -112,7 +116,7 @@ fun AddGroupDialog(onDismiss: () -> Unit, onAdd: (String) -> Unit) {
 }
 
 // ── Counter settings dialog ───────────────────────────────────────────────────
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun CounterSettingsDialog(
     counterName: String,
@@ -126,9 +130,10 @@ fun CounterSettingsDialog(
 ) {
     var name  by remember { mutableStateOf(counterName) }
     var value by remember { mutableStateOf(counterValue.toString()) }
-    var selectedGroupId  by remember { mutableStateOf(currentGroupId) }
-    var selectedColor    by remember { mutableStateOf(currentColor) }
-    var showCustomPicker by remember { mutableStateOf(false) }
+    var selectedGroupId      by remember { mutableStateOf(currentGroupId) }
+    var selectedColor        by remember { mutableStateOf(currentColor) }
+    var showCustomPicker     by remember { mutableStateOf(false) }
+    var groupDropdownExpanded by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -160,16 +165,36 @@ fun CounterSettingsDialog(
                 OutlinedTextField(value = value, onValueChange = { value = it }, label = { Text("Value") },
                     modifier = Modifier.fillMaxWidth(), singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-                Text("Group", style = MaterialTheme.typography.labelLarge)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 160.dp)
-                        .verticalScroll(rememberScrollState())
+
+                val selectedGroupName = groups.find { it.first == selectedGroupId }?.second ?: "None"
+                ExposedDropdownMenuBox(
+                    expanded = groupDropdownExpanded,
+                    onExpandedChange = { groupDropdownExpanded = it }
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        GroupChip("None", selectedGroupId == null) { selectedGroupId = null }
-                        groups.forEach { (id, gName) -> GroupChip(gName, selectedGroupId == id) { selectedGroupId = id } }
+                    OutlinedTextField(
+                        value = selectedGroupName,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Group") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = groupDropdownExpanded) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                    )
+                    ExposedDropdownMenu(
+                        expanded = groupDropdownExpanded,
+                        onDismissRequest = { groupDropdownExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("None") },
+                            onClick = { selectedGroupId = null; groupDropdownExpanded = false }
+                        )
+                        groups.forEach { (id, gName) ->
+                            DropdownMenuItem(
+                                text = { Text(gName) },
+                                onClick = { selectedGroupId = id; groupDropdownExpanded = false }
+                            )
+                        }
                     }
                 }
 
