@@ -3,6 +3,7 @@ package com.example.tracker.ui.components
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -71,6 +72,7 @@ fun CountersScreen(
     LazyColumn(
         state    = lazyListState,
         modifier = modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp),
+        contentPadding = PaddingValues(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         itemsIndexed(
