@@ -2,6 +2,7 @@ package com.example.tracker.viewmodel
 
 import android.content.Context
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -15,6 +16,8 @@ import com.example.tracker.data.Counter
 import com.example.tracker.data.CounterGroup
 import com.example.tracker.data.CustomOrderEntity
 import com.example.tracker.data.TrackerDatabase
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -63,8 +66,36 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
     private val _sortOrder = mutableStateOf(SortOrder.CUSTOM)
     val sortOrder = _sortOrder
 
+    /**
+     * Snapshot of counter values used as sort keys in VALUE mode.
+     * Updated immediately when entering value sort, then debounced by 3 s on each
+     * increment/decrement so the list order doesn't jump on every tap.
+     */
+    private val _valueSortSnapshot = mutableStateMapOf<String, Int>()
+    private var _valueSortDebounceJob: Job? = null
+
+    private fun takeValueSortSnapshot() {
+        _counters.forEach { _valueSortSnapshot[it.id] = it.value }
+    }
+
+    private fun scheduleValueSortSnapshot() {
+        if (_sortOrder.value != SortOrder.VALUE_HIGH_LOW &&
+            _sortOrder.value != SortOrder.VALUE_LOW_HIGH) return
+        _valueSortDebounceJob?.cancel()
+        _valueSortDebounceJob = viewModelScope.launch {
+            delay(3_000)
+            takeValueSortSnapshot()
+        }
+    }
+
     fun setSortOrder(order: SortOrder) {
         _sortOrder.value = order
+        // Take a fresh snapshot immediately so the order reflects current values
+        // when first switching to a value-based sort.
+        if (order == SortOrder.VALUE_HIGH_LOW || order == SortOrder.VALUE_LOW_HIGH) {
+            _valueSortDebounceJob?.cancel()
+            takeValueSortSnapshot()
+        }
         viewModelScope.launch {
             dataStore.edit { prefs -> prefs[KEY_SORT_ORDER] = order.name }
         }
@@ -114,6 +145,12 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
                 }
                 rebuildCustomOrder()
             }
+
+            // Initialise snapshot if app is launched already in value-sort mode
+            if (_sortOrder.value == SortOrder.VALUE_HIGH_LOW ||
+                _sortOrder.value == SortOrder.VALUE_LOW_HIGH) {
+                takeValueSortSnapshot()
+            }
         }
     }
 
@@ -148,22 +185,33 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
     // ── Unified sorted display list ───────────────────────────────────────────
 
     fun sortedDisplayItems(): List<DisplayItem> {
-        val groupItems  = _groups.map { DisplayItem.Group(it) }
+        val groupItems   = _groups.map { DisplayItem.Group(it) }
         val counterItems = _counters.filter { it.groupId == null }
                                     .map { DisplayItem.UngroupedCounter(it) }
         val all: List<DisplayItem> = groupItems + counterItems
 
+        // Helper: stable sort value for a counter in VALUE mode (uses snapshot so the
+        // position only updates after the 3-second debounce, not on every tap).
+        fun snapValue(counterId: String, live: Int) =
+            _valueSortSnapshot.getOrDefault(counterId, live)
+
         return when (_sortOrder.value) {
             SortOrder.VALUE_HIGH_LOW -> all.sortedByDescending { item ->
                 when (item) {
-                    is DisplayItem.Group            -> _counters.filter { it.groupId == item.group.id }.sumOf { it.value }
-                    is DisplayItem.UngroupedCounter -> item.counter.value
+                    is DisplayItem.Group ->
+                        _counters.filter { it.groupId == item.group.id }
+                                 .sumOf { snapValue(it.id, it.value) }
+                    is DisplayItem.UngroupedCounter ->
+                        snapValue(item.counter.id, item.counter.value)
                 }
             }
             SortOrder.VALUE_LOW_HIGH -> all.sortedBy { item ->
                 when (item) {
-                    is DisplayItem.Group            -> _counters.filter { it.groupId == item.group.id }.sumOf { it.value }
-                    is DisplayItem.UngroupedCounter -> item.counter.value
+                    is DisplayItem.Group ->
+                        _counters.filter { it.groupId == item.group.id }
+                                 .sumOf { snapValue(it.id, it.value) }
+                    is DisplayItem.UngroupedCounter ->
+                        snapValue(item.counter.id, item.counter.value)
                 }
             }
             SortOrder.ALPHA_AZ -> all.sortedBy { item ->
@@ -233,6 +281,7 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
         if (i == -1) return
         _counters[i] = _counters[i].copy(value = _counters[i].value + 1)
         viewModelScope.launch { db.counterDao().upsert(_counters[i]) }
+        scheduleValueSortSnapshot()
     }
 
     fun decrementCounter(counterId: String) {
@@ -240,6 +289,7 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
         if (i == -1) return
         _counters[i] = _counters[i].copy(value = _counters[i].value - 1)
         viewModelScope.launch { db.counterDao().upsert(_counters[i]) }
+        scheduleValueSortSnapshot()
     }
 
     fun setCounterValue(counterId: String, value: Int) {
