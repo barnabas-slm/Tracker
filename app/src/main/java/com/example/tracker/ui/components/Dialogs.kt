@@ -22,7 +22,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
@@ -158,9 +158,8 @@ fun CounterSettingsDialog(
                     actions = {
                         IconButton(onClick = onDelete) {
                             Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete Counter",
-                                tint = MaterialTheme.colorScheme.error
+                                imageVector = Icons.Outlined.Delete,
+                                contentDescription = "Delete Counter"
                             )
                         }
                     }
@@ -315,9 +314,8 @@ fun GroupSettingsDialog(
                     actions = {
                         IconButton(onClick = onDelete) {
                             Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete Group",
-                                tint = MaterialTheme.colorScheme.error
+                                imageVector = Icons.Outlined.Delete,
+                                contentDescription = "Delete Group"
                             )
                         }
                     }
@@ -426,9 +424,8 @@ fun ListSettingsDialog(
                         if (!isOnlyList) {
                             IconButton(onClick = onDelete) {
                                 Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Delete List",
-                                    tint = MaterialTheme.colorScheme.error
+                                    imageVector = Icons.Outlined.Delete,
+                                    contentDescription = "Delete List"
                                 )
                             }
                         }
