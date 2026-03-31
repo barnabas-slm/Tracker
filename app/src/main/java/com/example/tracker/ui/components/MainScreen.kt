@@ -11,15 +11,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -81,7 +78,6 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
     val context = LocalContext.current
     var showMenu         by rememberSaveable { mutableStateOf(false) }
     var showSortSheet    by rememberSaveable { mutableStateOf(false) }
-    var fabExpanded      by rememberSaveable { mutableStateOf(false) }
     var editingCounterId by rememberSaveable { mutableStateOf<String?>(null) }
     var editingGroupId   by rememberSaveable { mutableStateOf<String?>(null) }
     var editingListId    by rememberSaveable { mutableStateOf<String?>(null) }
@@ -147,31 +143,6 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        floatingActionButton = {
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                if (fabExpanded) {
-                    ExtendedFloatingActionButton(
-                        onClick = { viewModel.addGroup(); fabExpanded = false },
-                        icon = { Icon(Icons.Default.CreateNewFolder, contentDescription = null) },
-                        text = { Text("Add Group") }
-                    )
-                    ExtendedFloatingActionButton(
-                        onClick = { viewModel.addCounter(); fabExpanded = false },
-                        icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                        text = { Text("Add Counter") }
-                    )
-                }
-                FloatingActionButton(onClick = { fabExpanded = !fabExpanded }) {
-                    Icon(
-                        imageVector = if (fabExpanded) Icons.Default.Close else Icons.Default.Add,
-                        contentDescription = if (fabExpanded) "Close menu" else "Add"
-                    )
-                }
-            }
-        },
         topBar = {
             Column {
                 TopAppBar(
@@ -190,6 +161,26 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                         ) {
                             IconButton(onClick = { showSortSheet = true }) {
                                 Icon(Icons.Default.SwapVert, contentDescription = "Sort")
+                            }
+                        }
+                        // Add group
+                        TooltipBox(
+                            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                            tooltip = { PlainTooltip { Text("Add Group") } },
+                            state = rememberTooltipState()
+                        ) {
+                            IconButton(onClick = { viewModel.addGroup() }) {
+                                Icon(Icons.Default.CreateNewFolder, contentDescription = "Add Group")
+                            }
+                        }
+                        // Add counter
+                        TooltipBox(
+                            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                            tooltip = { PlainTooltip { Text("Add Counter") } },
+                            state = rememberTooltipState()
+                        ) {
+                            IconButton(onClick = { viewModel.addCounter() }) {
+                                Icon(Icons.Default.Add, contentDescription = "Add Counter")
                             }
                         }
                         // Overflow
