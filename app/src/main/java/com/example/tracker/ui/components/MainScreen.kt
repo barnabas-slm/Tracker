@@ -21,11 +21,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.TopAppBar
@@ -155,7 +156,9 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                     actions = {
                         // Sort — opens bottom sheet
                         TooltipBox(
-                            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                                positioning = TooltipAnchorPosition.Below
+                            ),
                             tooltip = { PlainTooltip { Text("Sort") } },
                             state = rememberTooltipState()
                         ) {
@@ -165,7 +168,9 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                         }
                         // Add group
                         TooltipBox(
-                            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                                positioning = TooltipAnchorPosition.Below
+                            ),
                             tooltip = { PlainTooltip { Text("Add Group") } },
                             state = rememberTooltipState()
                         ) {
@@ -175,7 +180,9 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                         }
                         // Add counter
                         TooltipBox(
-                            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                                positioning = TooltipAnchorPosition.Below
+                            ),
                             tooltip = { PlainTooltip { Text("Add Counter") } },
                             state = rememberTooltipState()
                         ) {
@@ -185,7 +192,9 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                         }
                         // Overflow
                         TooltipBox(
-                            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                                positioning = TooltipAnchorPosition.Below
+                            ),
                             tooltip = { PlainTooltip { Text("More options") } },
                             state = rememberTooltipState()
                         ) {
@@ -225,21 +234,22 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                 // ScrollableTabRow crashes with IndexOutOfBoundsException when
                 // selectedTabIndex >= 0 but the tab list is still empty.
                 if (lists.isNotEmpty()) {
-                    ScrollableTabRow(
+                    SecondaryScrollableTabRow(
                         selectedTabIndex = selectedTabIndex,
                         modifier         = Modifier.fillMaxWidth(),
                         edgePadding      = 0.dp,
                         containerColor   = MaterialTheme.colorScheme.surface,
                         contentColor     = MaterialTheme.colorScheme.onSurface,
-                        // Guard against IndexOutOfBoundsException when selectedTabIndex
-                        // jumps ahead of tabPositions during a subcompose layout pass.
-                        indicator = { tabPositions ->
-                            if (selectedTabIndex < tabPositions.size) {
-                                Box(
-                                    Modifier
-                                        .tabIndicatorOffset(tabPositions[selectedTabIndex])
-                                        .height(3.dp)
-                                        .background(MaterialTheme.colorScheme.primary)
+                        indicator = {
+                            if (selectedTabIndex < lists.size) {
+                                TabRowDefaults.SecondaryIndicator(
+                                    modifier = Modifier
+                                        .tabIndicatorOffset(
+                                            selectedTabIndex = selectedTabIndex,
+                                            matchContentSize = false
+                                        )
+                                        .height(3.dp),
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             }
                         }
