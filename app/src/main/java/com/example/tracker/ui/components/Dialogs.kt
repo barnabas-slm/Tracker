@@ -359,6 +359,7 @@ fun ListSettingsDialog(
     listName: String,
     isOnlyList: Boolean,
     onDismiss: () -> Unit,
+    onExportCsv: () -> Unit,
     onSave: (newName: String) -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -384,13 +385,24 @@ fun ListSettingsDialog(
             }
         },
         text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("List Name") },
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("List Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                TextButton(
+                    onClick = { onExportCsv(); onDismiss() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Export CSV")
+                }
+            }
         },
         confirmButton = {
             Button(onClick = { onSave(name.trim().ifBlank { listName }) }) { Text("Save") }

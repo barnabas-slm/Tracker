@@ -160,7 +160,6 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                                 showMenu = false
                                 viewModel.groups.forEach { groupExpandedState[it.id] = true }
                             })
-                            DropdownMenuItem(text = { Text("Export CSV") }, onClick = { showMenu = false; shareCsv() })
                             DropdownMenuItem(
                                 text = { Text("Delete All Counters", color = MaterialTheme.colorScheme.error) },
                                 onClick = { showMenu = false; viewModel.removeAllCounters() }
@@ -309,6 +308,7 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
             listName    = list.name,
             isOnlyList  = viewModel.lists.size <= 1,
             onDismiss   = { editingListId = null },
+            onExportCsv = { shareCsv() },
             onSave      = { newName ->
                 viewModel.renameList(lid, newName)
                 editingListId = null
