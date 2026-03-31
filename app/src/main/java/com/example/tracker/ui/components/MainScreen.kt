@@ -90,9 +90,14 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
     val selectedTabIndex = lists.indexOfFirst { it.id == activeListId }.coerceAtLeast(0)
 
     fun shareCsv() {
+        val listName = viewModel.lists.find { it.id == activeListId }?.name ?: "counters"
+        val safeFileName = listName
+            .replace(Regex("[\\\\/:*?\"<>|]"), "_")
+            .trim()
+            .ifBlank { "counters" }
         val csv = viewModel.buildCsvExport()
         val exportDir = File(context.cacheDir, "export").also { it.mkdirs() }
-        val file = File(exportDir, "counters.csv").also { it.writeText(csv) }
+        val file = File(exportDir, "$safeFileName.csv").also { it.writeText(csv) }
         val uri = FileProvider.getUriForFile(context, "com.example.tracker.fileprovider", file)
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "text/csv"
