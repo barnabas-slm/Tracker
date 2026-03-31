@@ -174,7 +174,6 @@ fun CounterSettingsDialog(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onDismiss) { Text("Cancel") }
                     Button(
                         onClick = {
                             onSave(
@@ -183,8 +182,7 @@ fun CounterSettingsDialog(
                                 selectedGroupId,
                                 selectedColor
                             )
-                        },
-                        modifier = Modifier.padding(start = 8.dp)
+                        }
                     ) { Text("Save") }
                 }
             }
@@ -333,10 +331,8 @@ fun GroupSettingsDialog(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onDismiss) { Text("Cancel") }
                     Button(
-                        onClick = { onSave(name.trim().ifBlank { groupName }, color) },
-                        modifier = Modifier.padding(start = 8.dp)
+                        onClick = { onSave(name.trim().ifBlank { groupName }, color) }
                     ) { Text("Save") }
                 }
             }
@@ -447,10 +443,8 @@ fun ListSettingsDialog(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onDismiss) { Text("Cancel") }
                     Button(
-                        onClick = { onSave(name.trim().ifBlank { listName }) },
-                        modifier = Modifier.padding(start = 8.dp)
+                        onClick = { onSave(name.trim().ifBlank { listName }) }
                     ) { Text("Save") }
                 }
             }
