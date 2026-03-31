@@ -49,6 +49,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import android.content.Intent
+import android.net.Uri
+import android.provider.OpenableColumns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import com.example.tracker.viewmodel.CounterViewModel
 import java.io.File
 
@@ -97,6 +101,39 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         context.startActivity(Intent.createChooser(intent, "Export CSV"))
+    }
+
+    // Launcher for importing a CSV file via the system document picker (SAF).
+    // No READ_EXTERNAL_STORAGE permission is required; SAF grants temporary access.
+    val csvImportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        try {
+            // Resolve a human-readable display name to use as the new list name.
+            val displayName: String = run {
+                var name: String? = null
+                context.contentResolver.query(
+                    uri,
+                    arrayOf(OpenableColumns.DISPLAY_NAME),
+                    null, null, null
+                )?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                        if (idx >= 0) name = cursor.getString(idx)
+                    }
+                }
+                name ?: uri.lastPathSegment ?: "Imported List"
+            }
+            val listName = displayName
+                .removeSuffix(".csv")
+                .removeSuffix(".CSV")
+            val content = context.contentResolver.openInputStream(uri)
+                ?.bufferedReader()
+                ?.readText()
+                ?: return@rememberLauncherForActivityResult
+            viewModel.importFromCsv(content, listName)
+        } catch (_: Exception) { /* ignore read errors silently */ }
     }
 
     Scaffold(
@@ -160,6 +197,15 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                                 showMenu = false
                                 viewModel.groups.forEach { groupExpandedState[it.id] = true }
                             })
+                            DropdownMenuItem(
+                                text = { Text("Import from CSV") },
+                                onClick = {
+                                    showMenu = false
+                                    csvImportLauncher.launch(
+                                        arrayOf("text/csv", "text/comma-separated-values")
+                                    )
+                                }
+                            )
                             DropdownMenuItem(
                                 text = { Text("Delete All Counters", color = MaterialTheme.colorScheme.error) },
                                 onClick = { showMenu = false; viewModel.removeAllCounters() }

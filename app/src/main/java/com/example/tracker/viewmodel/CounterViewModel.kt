@@ -524,6 +524,127 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
         return sb.toString()
     }
 
+    // ── Import ────────────────────────────────────────────────────────────────
+
+    /**
+     * Parses [csvContent] (in the format produced by [buildCsvExport]) and creates a new
+     * [CounterList] named [listName], then switches to it.
+     */
+    fun importFromCsv(csvContent: String, listName: String = "Imported List") {
+        listSequence++
+        val list = CounterList(
+            id       = UUID.randomUUID().toString(),
+            name     = listName,
+            position = _lists.size
+        )
+
+        val groupPalette = listOf(
+            0xFFE53935L, 0xFFF4511EL, 0xFFFFB300L, 0xFFFDD835L, 0xFF43A047L,
+            0xFF00897BL, 0xFF1E88E5L, 0xFF3949ABL, 0xFF8E24AAL, 0xFFD81B60L,
+        )
+        val counterPalette = listOf(
+            0xFFF48FB1L, 0xFFEF9A9AL, 0xFFFFCC80L, 0xFFFFE082L, 0xFFFFF59DL,
+            0xFFA5D6A7L, 0xFF80CBC4L, 0xFF90CAF9L, 0xFF9FA8DAL, 0xFFCE93D8L,
+        )
+
+        val dataLines = csvContent.lines()
+            .filter { it.isNotBlank() }
+            .let { lines ->
+                if (lines.isNotEmpty() && lines.first().trim().equals("Group,Counter,Value", ignoreCase = true))
+                    lines.drop(1) else lines
+            }
+
+        // Build entities in memory first so all state updates happen synchronously.
+        val newGroups   = mutableListOf<CounterGroup>()
+        val newCounters = mutableListOf<Counter>()
+        val newOrder    = mutableListOf<String>()
+        val groupMap    = mutableMapOf<String, CounterGroup>()   // group name → entity
+        var ungroupedCount = 0
+
+        dataLines.forEach { line ->
+            val fields      = parseCsvLine(line)
+            if (fields.size < 3) return@forEach
+            val groupName   = fields[0].trim()
+            val counterName = fields[1].trim()
+            val value       = fields[2].trim().toIntOrNull() ?: 0
+
+            if (groupName.isEmpty()) {
+                counterSequence++
+                val color = counterPalette[ungroupedCount % counterPalette.size]
+                ungroupedCount++
+                val counter = Counter(
+                    id      = UUID.randomUUID().toString(),
+                    name    = counterName.ifBlank { "Counter $counterSequence" },
+                    value   = value,
+                    groupId = null,
+                    color   = color,
+                    listId  = list.id
+                )
+                newCounters.add(counter)
+                newOrder.add("c:${counter.id}")
+            } else {
+                val group = groupMap.getOrPut(groupName) {
+                    groupSequence++
+                    val usedColors = groupMap.values.map { it.colorValue }.toSet()
+                    val color = groupPalette.firstOrNull { it !in usedColors }
+                        ?: groupPalette[groupMap.size % groupPalette.size]
+                    val g = CounterGroup(UUID.randomUUID().toString(), groupName, color, list.id)
+                    newGroups.add(g)
+                    newOrder.add("g:${g.id}")
+                    g
+                }
+                counterSequence++
+                val counter = Counter(
+                    id      = UUID.randomUUID().toString(),
+                    name    = counterName.ifBlank { "Counter $counterSequence" },
+                    value   = value,
+                    groupId = group.id,
+                    color   = null,
+                    listId  = list.id
+                )
+                newCounters.add(counter)
+            }
+        }
+
+        // Update in-memory state
+        _lists.add(list)
+        _groups.addAll(newGroups)
+        _counters.addAll(newCounters)
+        _customOrderCache[list.id] = newOrder.toMutableList()
+
+        // Persist to DB
+        viewModelScope.launch {
+            db.counterListDao().upsert(list)
+            newGroups.forEach { db.counterGroupDao().upsert(it) }
+            newCounters.forEach { db.counterDao().upsert(it) }
+            db.customOrderDao().saveOrder(
+                CustomOrderEntity(listId = list.id, order = newOrder.joinToString(","))
+            )
+        }
+
+        switchActiveList(list.id)
+    }
+
+    /** RFC-4180-compliant CSV line splitter that handles quoted fields. */
+    private fun parseCsvLine(line: String): List<String> {
+        val fields = mutableListOf<String>()
+        val sb = StringBuilder()
+        var inQuotes = false
+        var i = 0
+        while (i < line.length) {
+            when {
+                line[i] == '"' && inQuotes && i + 1 < line.length && line[i + 1] == '"' -> {
+                    sb.append('"'); i += 2
+                }
+                line[i] == '"' -> { inQuotes = !inQuotes; i++ }
+                line[i] == ',' && !inQuotes -> { fields.add(sb.toString()); sb.clear(); i++ }
+                else -> { sb.append(line[i]); i++ }
+            }
+        }
+        fields.add(sb.toString())
+        return fields
+    }
+
     // ── Factory ───────────────────────────────────────────────────────────────
 
     class Factory(private val db: TrackerDatabase, private val context: Context) : ViewModelProvider.Factory {
