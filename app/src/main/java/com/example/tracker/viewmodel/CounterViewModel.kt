@@ -14,6 +14,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.tracker.data.Counter
 import com.example.tracker.data.CounterGroup
+import com.example.tracker.data.CounterList
 import com.example.tracker.data.CustomOrderEntity
 import com.example.tracker.data.TrackerDatabase
 import kotlinx.coroutines.Job
@@ -47,6 +48,25 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
     companion object {
         private val KEY_SORT_ORDER = stringPreferencesKey("sort_order")
     }
+
+    // ── Lists ─────────────────────────────────────────────────────────────────
+
+    private val _lists = mutableStateListOf<CounterList>()
+    val lists: List<CounterList> = _lists
+
+    private val _activeListId = mutableStateOf("")
+    val activeListId = _activeListId
+
+    /**
+     * Per-list custom order cache (not observable — only _customOrder is observed by Compose).
+     * Entries are "g:<groupId>" / "c:<counterId>" tokens, same as _customOrder.
+     */
+    private val _customOrderCache = HashMap<String, MutableList<String>>()
+
+    private var listSequence = 0
+
+    // ── Counters / Groups ─────────────────────────────────────────────────────
+
     private val _counters = mutableStateListOf<Counter>()
     val counters: List<Counter> = _counters
 
@@ -54,9 +74,8 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
     val groups: List<CounterGroup> = _groups
 
     /**
-     * Ordered display list for CUSTOM sort. Holds group IDs and counter IDs so
-     * the custom order persists even when groups/counters are renamed or values change.
-     * Each entry is either "g:<groupId>" or "c:<counterId>".
+     * Custom order for the **currently active list**.
+     * Swapped in/out by switchActiveList().
      */
     private val _customOrder = mutableStateListOf<String>()
 
@@ -66,16 +85,12 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
     private val _sortOrder = mutableStateOf(SortOrder.CUSTOM)
     val sortOrder = _sortOrder
 
-    /**
-     * Snapshot of counter values used as sort keys in VALUE mode.
-     * Updated immediately when entering value sort, then debounced by 3 s on each
-     * increment/decrement so the list order doesn't jump on every tap.
-     */
     private val _valueSortSnapshot = mutableStateMapOf<String, Int>()
     private var _valueSortDebounceJob: Job? = null
 
     private fun takeValueSortSnapshot() {
-        _counters.forEach { _valueSortSnapshot[it.id] = it.value }
+        val activeId = _activeListId.value
+        _counters.filter { it.listId == activeId }.forEach { _valueSortSnapshot[it.id] = it.value }
     }
 
     private fun scheduleValueSortSnapshot() {
@@ -90,8 +105,6 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
 
     fun setSortOrder(order: SortOrder) {
         _sortOrder.value = order
-        // Take a fresh snapshot immediately so the order reflects current values
-        // when first switching to a value-based sort.
         if (order == SortOrder.VALUE_HIGH_LOW || order == SortOrder.VALUE_LOW_HIGH) {
             _valueSortDebounceJob?.cancel()
             takeValueSortSnapshot()
@@ -111,12 +124,14 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
     // ── Persistence helpers ───────────────────────────────────────────────────
 
     private fun saveOrder() {
+        val listId = _activeListId.value
+        if (listId.isBlank()) return
         viewModelScope.launch {
-            db.customOrderDao().saveOrder(CustomOrderEntity(order = _customOrder.joinToString(",")))
+            db.customOrderDao().saveOrder(CustomOrderEntity(listId = listId, order = _customOrder.joinToString(",")))
         }
     }
 
-    // ── Initialisation — load from DB (or seed defaults if empty) ─────────────
+    // ── Initialisation ────────────────────────────────────────────────────────
 
     init {
         viewModelScope.launch {
@@ -127,22 +142,40 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
                     .getOrDefault(SortOrder.CUSTOM)
             }
 
+            val savedLists    = db.counterListDao().getAllFlow().first()
             val savedGroups   = db.counterGroupDao().getAllFlow().first()
             val savedCounters = db.counterDao().getAllFlow().first()
-            val savedOrder    = db.customOrderDao().getOrderList().firstOrNull()
+            val savedOrders   = db.customOrderDao().getAllOrders()
 
-            if (savedCounters.isEmpty() && savedGroups.isEmpty()) {
-                // First launch — seed three default counters
+            // Populate per-list custom order cache
+            savedOrders.forEach { entity ->
+                _customOrderCache[entity.listId] =
+                    entity.order.split(",").filter { it.isNotBlank() }.toMutableList()
+            }
+
+            if (savedLists.isEmpty()) {
+                // First launch — create the Default list then seed three counters
+                val defaultList = CounterList(
+                    id       = UUID.randomUUID().toString(),
+                    name     = "Default",
+                    position = 0
+                )
+                _lists.add(defaultList)
+                _activeListId.value = defaultList.id
+                _customOrderCache[defaultList.id] = mutableListOf()
+                listSequence = 1
+                db.counterListDao().upsert(defaultList)
                 repeat(3) { addCounter() }
             } else {
+                _lists.addAll(savedLists)
                 _groups.addAll(savedGroups)
                 _counters.addAll(savedCounters)
+                listSequence    = savedLists.size
                 groupSequence   = savedGroups.size
                 counterSequence = savedCounters.size
 
-                if (savedOrder != null && savedOrder.isNotBlank()) {
-                    _customOrder.addAll(savedOrder.split(",").filter { it.isNotBlank() })
-                }
+                _activeListId.value = savedLists.first().id
+                _customOrder.addAll(_customOrderCache[_activeListId.value] ?: emptyList())
                 rebuildCustomOrder()
             }
 
@@ -154,22 +187,93 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
         }
     }
 
+    // ── List CRUD ─────────────────────────────────────────────────────────────
+
+    fun addList(name: String? = null) {
+        listSequence++
+        val resolvedName = name ?: "List $listSequence"
+        val list = CounterList(
+            id       = UUID.randomUUID().toString(),
+            name     = resolvedName,
+            position = _lists.size
+        )
+        _lists.add(list)
+        _customOrderCache[list.id] = mutableListOf()
+        viewModelScope.launch { db.counterListDao().upsert(list) }
+        switchActiveList(list.id)
+    }
+
+    fun renameList(listId: String, name: String) {
+        val i = _lists.indexOfFirst { it.id == listId }
+        if (i == -1) return
+        _lists[i] = _lists[i].copy(name = name)
+        viewModelScope.launch { db.counterListDao().upsert(_lists[i]) }
+    }
+
+    fun removeList(listId: String) {
+        if (_lists.size <= 1) return   // guard: never delete the last list
+        val wasActive = _activeListId.value == listId
+
+        // Save current order to cache before mutating
+        if (wasActive) _customOrderCache[listId] = _customOrder.toMutableList()
+
+        _groups.removeAll { it.listId == listId }
+        _counters.removeAll { it.listId == listId }
+        _customOrderCache.remove(listId)
+        _lists.removeAll { it.id == listId }
+
+        viewModelScope.launch {
+            db.counterDao().deleteByListId(listId)
+            db.counterGroupDao().deleteByListId(listId)
+            db.customOrderDao().deleteByListId(listId)
+            db.counterListDao().deleteById(listId)
+        }
+
+        if (wasActive) {
+            val newId = _lists.first().id
+            _activeListId.value = newId
+            _customOrder.clear()
+            _customOrder.addAll(_customOrderCache[newId] ?: emptyList())
+            rebuildCustomOrder()
+        }
+    }
+
+    /**
+     * Switch the active list. Saves the current list's order to the cache,
+     * then loads the target list's order into _customOrder.
+     */
+    fun switchActiveList(listId: String) {
+        if (listId == _activeListId.value) return
+        // Persist the current active list's order in the cache
+        _customOrderCache[_activeListId.value] = _customOrder.toMutableList()
+        _activeListId.value = listId
+        _customOrder.clear()
+        _customOrder.addAll(_customOrderCache[listId] ?: emptyList())
+        rebuildCustomOrder()
+        // Reset value-sort snapshot for the new list
+        _valueSortDebounceJob?.cancel()
+        if (_sortOrder.value == SortOrder.VALUE_HIGH_LOW ||
+            _sortOrder.value == SortOrder.VALUE_LOW_HIGH) {
+            takeValueSortSnapshot()
+        }
+    }
+
     // ── Custom-order helpers ──────────────────────────────────────────────────
 
     private fun rebuildCustomOrder() {
+        val activeId = _activeListId.value
         val existing = _customOrder.toSet()
-        // Add any new groups/ungrouped counters not yet in the order
-        _groups.forEach { g ->
+        _groups.filter { it.listId == activeId }.forEach { g ->
             val key = "g:${g.id}"
             if (key !in existing) _customOrder.add(key)
         }
-        _counters.filter { it.groupId == null }.forEach { c ->
+        _counters.filter { it.groupId == null && it.listId == activeId }.forEach { c ->
             val key = "c:${c.id}"
             if (key !in existing) _customOrder.add(key)
         }
-        // Remove keys whose backing item no longer exists
-        val validKeys = _groups.map { "g:${it.id}" }.toSet() +
-                        _counters.filter { it.groupId == null }.map { "c:${it.id}" }.toSet()
+        val validKeys =
+            _groups.filter { it.listId == activeId }.map { "g:${it.id}" }.toSet() +
+            _counters.filter { it.groupId == null && it.listId == activeId }.map { "c:${it.id}" }.toSet()
         _customOrder.removeAll { it !in validKeys }
     }
 
@@ -185,8 +289,9 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
     // ── Unified sorted display list ───────────────────────────────────────────
 
     fun sortedDisplayItems(): List<DisplayItem> {
-        val groupItems   = _groups.map { DisplayItem.Group(it) }
-        val counterItems = _counters.filter { it.groupId == null }
+        val activeId     = _activeListId.value
+        val groupItems   = _groups.filter { it.listId == activeId }.map { DisplayItem.Group(it) }
+        val counterItems = _counters.filter { it.groupId == null && it.listId == activeId }
                                     .map { DisplayItem.UngroupedCounter(it) }
         val all: List<DisplayItem> = groupItems + counterItems
 
@@ -228,11 +333,11 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
             }
             SortOrder.CUSTOM -> {
                 rebuildCustomOrder()
-                val groupMap   = _groups.associateBy   { "g:${it.id}" }
-                val counterMap = _counters.filter { it.groupId == null }.associateBy { "c:${it.id}" }
+                val activeGroups   = _groups.filter { it.listId == activeId }.associateBy { "g:${it.id}" }
+                val activeCounters = _counters.filter { it.groupId == null && it.listId == activeId }.associateBy { "c:${it.id}" }
                 _customOrder.mapNotNull { key ->
-                    groupMap[key]?.let   { DisplayItem.Group(it) }
-                    ?: counterMap[key]?.let { DisplayItem.UngroupedCounter(it) }
+                    activeGroups[key]?.let   { DisplayItem.Group(it) }
+                    ?: activeCounters[key]?.let { DisplayItem.UngroupedCounter(it) }
                 }
             }
         }
@@ -240,7 +345,7 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
 
     // ── Legacy helpers ────────────────────────────────────────────────────────
     fun getCountersInGroup(groupId: String): List<Counter> = _counters.filter { it.groupId == groupId }
-    fun getUngroupedCounters(): List<Counter> = _counters.filter { it.groupId == null }
+    fun getUngroupedCounters(): List<Counter> = _counters.filter { it.groupId == null && it.listId == _activeListId.value }
 
     // ── Counter CRUD ──────────────────────────────────────────────────────────
 
@@ -250,8 +355,9 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
             0xFFF48FB1L, 0xFFEF9A9AL, 0xFFFFCC80L, 0xFFFFE082L, 0xFFFFF59DL,
             0xFFA5D6A7L, 0xFF80CBC4L, 0xFF90CAF9L, 0xFF9FA8DAL, 0xFFCE93D8L
         )
+        val activeId = _activeListId.value
         val autoColor: Long? = if (groupId == null) {
-            val usedColors = _counters.filter { it.groupId == null }.mapNotNull { it.color }.toSet()
+            val usedColors = _counters.filter { it.groupId == null && it.listId == activeId }.mapNotNull { it.color }.toSet()
             paletteColors.firstOrNull { it !in usedColors }
                 ?: paletteColors[counterSequence % paletteColors.size]
         } else null
@@ -260,7 +366,8 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
             name    = name ?: "Counter $counterSequence",
             value   = 0,
             groupId = groupId,
-            color   = autoColor
+            color   = autoColor,
+            listId  = activeId
         )
         _counters.add(counter)
         if (groupId == null) {
@@ -279,11 +386,12 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
     }
 
     fun removeAllCounters() {
-        val ids = _counters.map { it.id }.toSet()
-        _counters.clear()
+        val activeId = _activeListId.value
+        val ids = _counters.filter { it.listId == activeId }.map { it.id }.toSet()
+        _counters.removeAll { it.listId == activeId }
         _customOrder.removeAll { key -> ids.any { key == "c:$it" } }
         saveOrder()
-        viewModelScope.launch { db.counterDao().deleteAll() }
+        viewModelScope.launch { db.counterDao().deleteByListId(activeId) }
     }
 
     fun incrementCounter(counterId: String) {
@@ -347,11 +455,12 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
             0xFFE53935L, 0xFFF4511EL, 0xFFFFB300L, 0xFFFDD835L, 0xFF43A047L,
             0xFF00897BL, 0xFF1E88E5L, 0xFF3949ABL, 0xFF8E24AAL, 0xFFD81B60L,
         )
-        val usedColors  = _groups.map { it.colorValue }.toSet()
+        val activeId = _activeListId.value
+        val usedColors  = _groups.filter { it.listId == activeId }.map { it.colorValue }.toSet()
         val chosenColor = colorValue
             ?: paletteColors.firstOrNull { it !in usedColors }
             ?: paletteColors[_groups.size % paletteColors.size]
-        val group = CounterGroup(UUID.randomUUID().toString(), resolvedName, chosenColor)
+        val group = CounterGroup(UUID.randomUUID().toString(), resolvedName, chosenColor, activeId)
         _groups.add(group)
         _customOrder.add("g:${group.id}")
         saveOrder()
@@ -372,7 +481,6 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
         saveOrder()
         viewModelScope.launch {
             db.counterGroupDao().deleteById(groupId)
-            // Persist ungrouped counters
             _counters.filter { it.groupId == null }.forEach { db.counterDao().upsert(it) }
         }
     }
@@ -391,14 +499,10 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
         viewModelScope.launch { db.counterGroupDao().upsert(_groups[i]) }
     }
 
-    // ── Export ───────────────────────────────────────────────────────────────
+    // ── Export ────────────────────────────────────────────────────────────────
 
-    /**
-     * Builds a CSV string with columns: Group, Counter, Value.
-     * Ungrouped counters have an empty Group field.
-     * Field values containing commas or quotes are properly quoted.
-     */
     fun buildCsvExport(): String {
+        val activeId = _activeListId.value
         fun csvField(value: String): String =
             if (value.contains(',') || value.contains('"') || value.contains('\n'))
                 "\"${value.replace("\"", "\"\"")}\""
@@ -407,13 +511,11 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
         val sb = StringBuilder()
         sb.appendLine("Group,Counter,Value")
 
-        // Ungrouped counters
-        _counters.filter { it.groupId == null }.forEach { c ->
+        _counters.filter { it.groupId == null && it.listId == activeId }.forEach { c ->
             sb.appendLine(",${csvField(c.name)},${c.value}")
         }
 
-        // Grouped counters
-        _groups.forEach { g ->
+        _groups.filter { it.listId == activeId }.forEach { g ->
             _counters.filter { it.groupId == g.id }.forEach { c ->
                 sb.appendLine("${csvField(g.name)},${csvField(c.name)},${c.value}")
             }
