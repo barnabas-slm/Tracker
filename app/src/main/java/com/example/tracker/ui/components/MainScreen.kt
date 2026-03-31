@@ -1,5 +1,14 @@
 package com.example.tracker.ui.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CreateNewFolder
@@ -13,6 +22,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
@@ -26,10 +38,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.core.content.FileProvider
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -62,9 +76,14 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
     var showSortSheet    by rememberSaveable { mutableStateOf(false) }
     var editingCounterId by rememberSaveable { mutableStateOf<String?>(null) }
     var editingGroupId   by rememberSaveable { mutableStateOf<String?>(null) }
+    var editingListId    by rememberSaveable { mutableStateOf<String?>(null) }
 
     // Per-group expanded state: true = expanded (default), false = collapsed
     val groupExpandedState = remember { mutableStateMapOf<String, Boolean>() }
+
+    val lists        = viewModel.lists
+    val activeListId = viewModel.activeListId.value
+    val selectedTabIndex = lists.indexOfFirst { it.id == activeListId }.coerceAtLeast(0)
 
     fun shareCsv() {
         val csv = viewModel.buildCsvExport()
@@ -83,72 +102,139 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            TopAppBar(
-                title = { Text("Tracker", fontWeight = FontWeight.Bold) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor         = MaterialTheme.colorScheme.surface,
-                    titleContentColor      = MaterialTheme.colorScheme.onSurface,
-                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
-                ),
-                actions = {
-                    // Sort — opens bottom sheet
-                    TooltipBox(
-                        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                        tooltip = { PlainTooltip { Text("Sort") } },
-                        state = rememberTooltipState()
-                    ) {
-                        IconButton(onClick = { showSortSheet = true }) {
-                            Icon(Icons.Default.SwapVert, contentDescription = "Sort")
+            Column {
+                TopAppBar(
+                    title = { Text("Tracker", fontWeight = FontWeight.Bold) },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor         = MaterialTheme.colorScheme.surface,
+                        titleContentColor      = MaterialTheme.colorScheme.onSurface,
+                        actionIconContentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    actions = {
+                        // Sort — opens bottom sheet
+                        TooltipBox(
+                            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                            tooltip = { PlainTooltip { Text("Sort") } },
+                            state = rememberTooltipState()
+                        ) {
+                            IconButton(onClick = { showSortSheet = true }) {
+                                Icon(Icons.Default.SwapVert, contentDescription = "Sort")
+                            }
+                        }
+                        // Add group
+                        TooltipBox(
+                            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                            tooltip = { PlainTooltip { Text("Add Group") } },
+                            state = rememberTooltipState()
+                        ) {
+                            IconButton(onClick = { viewModel.addGroup() }) {
+                                Icon(Icons.Default.CreateNewFolder, contentDescription = "Add Group")
+                            }
+                        }
+                        // Add counter
+                        TooltipBox(
+                            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                            tooltip = { PlainTooltip { Text("Add Counter") } },
+                            state = rememberTooltipState()
+                        ) {
+                            IconButton(onClick = { viewModel.addCounter() }) {
+                                Icon(Icons.Default.Add, contentDescription = "Add Counter")
+                            }
+                        }
+                        // Overflow
+                        TooltipBox(
+                            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                            tooltip = { PlainTooltip { Text("More options") } },
+                            state = rememberTooltipState()
+                        ) {
+                            IconButton(onClick = { showMenu = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                            }
+                        }
+                        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                            DropdownMenuItem(text = { Text("Collapse All") }, onClick = {
+                                showMenu = false
+                                viewModel.groups.forEach { groupExpandedState[it.id] = false }
+                            })
+                            DropdownMenuItem(text = { Text("Expand All") }, onClick = {
+                                showMenu = false
+                                viewModel.groups.forEach { groupExpandedState[it.id] = true }
+                            })
+                            DropdownMenuItem(
+                                text = { Text("Delete All Counters", color = MaterialTheme.colorScheme.error) },
+                                onClick = { showMenu = false; viewModel.removeAllCounters() }
+                            )
+                            DropdownMenuItem(text = { Text("About Tracker") }, onClick = { showMenu = false; onNavigateToAbout() })
                         }
                     }
-                    // Add group
-                    TooltipBox(
-                        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                        tooltip = { PlainTooltip { Text("Add Group") } },
-                        state = rememberTooltipState()
-                    ) {
-                        IconButton(onClick = { viewModel.addGroup() }) {
-                            Icon(Icons.Default.CreateNewFolder, contentDescription = "Add Group")
+                )
+
+                // ── List tabs ─────────────────────────────────────────────────
+                // Guard: only render the tab row once lists have loaded from DB.
+                // ScrollableTabRow crashes with IndexOutOfBoundsException when
+                // selectedTabIndex >= 0 but the tab list is still empty.
+                if (lists.isNotEmpty()) {
+                    ScrollableTabRow(
+                        selectedTabIndex = selectedTabIndex,
+                        modifier         = Modifier.fillMaxWidth(),
+                        edgePadding      = 0.dp,
+                        containerColor   = MaterialTheme.colorScheme.surface,
+                        contentColor     = MaterialTheme.colorScheme.onSurface,
+                        // Guard against IndexOutOfBoundsException when selectedTabIndex
+                        // jumps ahead of tabPositions during a subcompose layout pass.
+                        indicator = { tabPositions ->
+                            if (selectedTabIndex < tabPositions.size) {
+                                Box(
+                                    Modifier
+                                        .tabIndicatorOffset(tabPositions[selectedTabIndex])
+                                        .height(3.dp)
+                                        .background(MaterialTheme.colorScheme.primary)
+                                )
+                            }
                         }
-                    }
-                    // Add counter
-                    TooltipBox(
-                        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                        tooltip = { PlainTooltip { Text("Add Counter") } },
-                        state = rememberTooltipState()
                     ) {
-                        IconButton(onClick = { viewModel.addCounter() }) {
-                            Icon(Icons.Default.Add, contentDescription = "Add Counter")
+                        // ── Regular list tabs ──────────────────────────────────
+                        lists.forEach { list ->
+                            val isActive = list.id == activeListId
+                            Tab(
+                                selected = isActive,
+                                // Tap unselected tab → switch list.
+                                // Tap the already-selected tab → open list settings.
+                                onClick = {
+                                    if (isActive) editingListId = list.id
+                                    else viewModel.switchActiveList(list.id)
+                                },
+                                text = {
+                                    Text(
+                                        text     = list.name,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            )
                         }
-                    }
-                    // Overflow
-                    TooltipBox(
-                        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                        tooltip = { PlainTooltip { Text("More options") } },
-                        state = rememberTooltipState()
-                    ) {
-                        IconButton(onClick = { showMenu = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "More options")
-                        }
-                    }
-                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                        DropdownMenuItem(text = { Text("Collapse All") }, onClick = {
-                            showMenu = false
-                            viewModel.groups.forEach { groupExpandedState[it.id] = false }
-                        })
-                        DropdownMenuItem(text = { Text("Expand All") }, onClick = {
-                            showMenu = false
-                            viewModel.groups.forEach { groupExpandedState[it.id] = true }
-                        })
-                        DropdownMenuItem(text = { Text("Export CSV") }, onClick = { showMenu = false; shareCsv() })
-                        DropdownMenuItem(
-                            text = { Text("Delete All Counters", color = MaterialTheme.colorScheme.error) },
-                            onClick = { showMenu = false; viewModel.removeAllCounters() }
+
+                        // ── "New List" tab (always unselected, acts as a button) ─
+                        Tab(
+                            selected = false,
+                            onClick  = { viewModel.addList() },
+                            text = {
+                                Row(
+                                    verticalAlignment    = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector        = Icons.Default.Add,
+                                        contentDescription = null,
+                                        modifier           = Modifier.size(16.dp)
+                                    )
+                                    Text("New List")
+                                }
+                            }
                         )
-                        DropdownMenuItem(text = { Text("About Tracker") }, onClick = { showMenu = false; onNavigateToAbout() })
                     }
                 }
-            )
+            }
         }
     ) { innerPadding ->
         CountersScreen(
@@ -184,7 +270,9 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
         CounterSettingsDialog(
             counterName    = counter.name,
             counterValue   = counter.value,
-            groups         = viewModel.groups.map { it.id to it.name },
+            groups         = viewModel.groups
+                                .filter { it.listId == viewModel.activeListId.value }
+                                .map { it.id to it.name },
             currentGroupId = counter.groupId,
             currentColor   = counter.color,
             onDismiss      = { editingCounterId = null },
@@ -213,5 +301,22 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
             onDelete = { viewModel.removeGroup(gid); editingGroupId = null }
         )
     }
-}
 
+    editingListId?.let { lid ->
+        val list = viewModel.lists.find { it.id == lid } ?: run { editingListId = null; return@let }
+        ListSettingsDialog(
+            listName    = list.name,
+            isOnlyList  = viewModel.lists.size <= 1,
+            onDismiss   = { editingListId = null },
+            onExportCsv = { shareCsv() },
+            onSave      = { newName ->
+                viewModel.renameList(lid, newName)
+                editingListId = null
+            },
+            onDelete    = {
+                viewModel.removeList(lid)
+                editingListId = null
+            }
+        )
+    }
+}

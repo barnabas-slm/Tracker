@@ -353,6 +353,64 @@ fun GroupSettingsDialog(
     )
 }
 
+// ── List settings dialog ──────────────────────────────────────────────────────
+@Composable
+fun ListSettingsDialog(
+    listName: String,
+    isOnlyList: Boolean,
+    onDismiss: () -> Unit,
+    onExportCsv: () -> Unit,
+    onSave: (newName: String) -> Unit,
+    onDelete: () -> Unit,
+) {
+    var name by remember { mutableStateOf(listName) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("List Settings")
+                if (!isOnlyList) {
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete List",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("List Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                TextButton(
+                    onClick = { onExportCsv(); onDismiss() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Export CSV")
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onSave(name.trim().ifBlank { listName }) }) { Text("Save") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
+}
+
 // ── HSV colour picker ─────────────────────────────────────────────────────────
 @Composable
 fun HsvColorPicker(

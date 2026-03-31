@@ -7,6 +7,18 @@ import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
 @Dao
+interface CounterListDao {
+    @Query("SELECT * FROM counter_lists ORDER BY position")
+    fun getAllFlow(): Flow<List<CounterList>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(list: CounterList)
+
+    @Query("DELETE FROM counter_lists WHERE id = :id")
+    suspend fun deleteById(id: String)
+}
+
+@Dao
 interface CounterDao {
     @Query("SELECT * FROM counters")
     fun getAllFlow(): Flow<List<Counter>>
@@ -16,6 +28,9 @@ interface CounterDao {
 
     @Query("DELETE FROM counters WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    @Query("DELETE FROM counters WHERE listId = :listId")
+    suspend fun deleteByListId(listId: String)
 
     @Query("DELETE FROM counters")
     suspend fun deleteAll()
@@ -31,17 +46,22 @@ interface CounterGroupDao {
 
     @Query("DELETE FROM counter_groups WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    @Query("DELETE FROM counter_groups WHERE listId = :listId")
+    suspend fun deleteByListId(listId: String)
 }
 
 @Dao
 interface CustomOrderDao {
-    @Query("SELECT `order` FROM custom_order WHERE rowId = 0")
-    suspend fun getOrderList(): List<String>
+    @Query("SELECT `order` FROM custom_order WHERE listId = :listId")
+    suspend fun getOrderForList(listId: String): String?
+
+    @Query("SELECT * FROM custom_order")
+    suspend fun getAllOrders(): List<CustomOrderEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveOrder(entity: CustomOrderEntity)
+
+    @Query("DELETE FROM custom_order WHERE listId = :listId")
+    suspend fun deleteByListId(listId: String)
 }
-
-
-
-
