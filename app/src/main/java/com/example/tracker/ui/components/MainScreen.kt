@@ -1,6 +1,5 @@
 package com.example.tracker.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,12 +10,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -78,6 +77,7 @@ fun TrackerApp(viewModel: CounterViewModel) {
 fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
     val context = LocalContext.current
     var showMenu         by rememberSaveable { mutableStateOf(false) }
+    var showFabMenu      by rememberSaveable { mutableStateOf(false) }
     var showSortSheet    by rememberSaveable { mutableStateOf(false) }
     var editingCounterId by rememberSaveable { mutableStateOf<String?>(null) }
     var editingGroupId   by rememberSaveable { mutableStateOf<String?>(null) }
@@ -144,6 +144,32 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        floatingActionButton = {
+            Box {
+                FloatingActionButton(onClick = { showFabMenu = !showFabMenu }) {
+                    Icon(Icons.Default.Add, contentDescription = "Add items")
+                }
+                DropdownMenu(
+                    expanded = showFabMenu,
+                    onDismissRequest = { showFabMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Add Counter") },
+                        onClick = {
+                            showFabMenu = false
+                            viewModel.addCounter()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Add Group") },
+                        onClick = {
+                            showFabMenu = false
+                            viewModel.addGroup()
+                        }
+                    )
+                }
+            }
+        },
         topBar = {
             Column {
                 TopAppBar(
@@ -164,30 +190,6 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                         ) {
                             IconButton(onClick = { showSortSheet = true }) {
                                 Icon(Icons.Default.SwapVert, contentDescription = "Sort")
-                            }
-                        }
-                        // Add group
-                        TooltipBox(
-                            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
-                                positioning = TooltipAnchorPosition.Below
-                            ),
-                            tooltip = { PlainTooltip { Text("Add Group") } },
-                            state = rememberTooltipState()
-                        ) {
-                            IconButton(onClick = { viewModel.addGroup() }) {
-                                Icon(Icons.Default.CreateNewFolder, contentDescription = "Add Group")
-                            }
-                        }
-                        // Add counter
-                        TooltipBox(
-                            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
-                                positioning = TooltipAnchorPosition.Below
-                            ),
-                            tooltip = { PlainTooltip { Text("Add Counter") } },
-                            state = rememberTooltipState()
-                        ) {
-                            IconButton(onClick = { viewModel.addCounter() }) {
-                                Icon(Icons.Default.Add, contentDescription = "Add Counter")
                             }
                         }
                         // Overflow
