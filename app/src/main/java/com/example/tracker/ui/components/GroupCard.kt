@@ -11,18 +11,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -50,9 +49,8 @@ fun GroupCard(
         label         = "arrowRotation"
     )
 
-    Card(
-        modifier  = modifier.fillMaxWidth(),
-        colors    = CardDefaults.cardColors(containerColor = Color(group.colorValue)),
+    OutlinedCard(
+        modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else 0.dp)
     ) {
         Column(
@@ -72,20 +70,20 @@ fun GroupCard(
                     text       = group.name,
                     style      = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color      = Color.White,
+                    color      = MaterialTheme.colorScheme.onSurface,
                     modifier   = Modifier.weight(1f).clickable { onTitleClick() }
                 )
                 Text(
                     text       = counters.sumOf { it.value }.toString(),
                     style      = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color      = Color.White.copy(alpha = 0.85f)
+                    color      = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 IconButton(onClick = { groupExpandedState[group.id] = !expanded }) {
                     Icon(
                         imageVector        = Icons.Default.ExpandMore,
                         contentDescription = if (expanded) "Collapse" else "Expand",
-                        tint               = Color.White,
+                        tint               = MaterialTheme.colorScheme.onSurface,
                         modifier           = Modifier.rotate(arrowRotation)
                     )
                 }
@@ -129,5 +127,3 @@ fun GroupCardPreview() {
         groupExpandedState = mutableMapOf("g1" to true)
     )
 }
-
-

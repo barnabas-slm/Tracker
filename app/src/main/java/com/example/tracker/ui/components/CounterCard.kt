@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,7 +26,7 @@ fun CounterCard(
     onDecrement: () -> Unit,
     onTitleClick: () -> Unit,
     modifier: Modifier = Modifier,
-    contentColor: Color = Color.White
+    contentColor: Color = MaterialTheme.colorScheme.onSurface
 ) {
     Row(
         modifier = modifier
@@ -44,13 +43,7 @@ fun CounterCard(
                 .weight(1f)
                 .clickable { onTitleClick() }
         )
-        FilledTonalIconButton(
-            onClick = onDecrement,
-            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = contentColor.copy(alpha = 0.20f),
-                contentColor   = contentColor
-            )
-        ) {
+        FilledTonalIconButton(onClick = onDecrement) {
             Text("-", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = contentColor)
         }
         Text(
@@ -62,13 +55,7 @@ fun CounterCard(
             maxLines = 1,
             modifier = Modifier.width(72.dp)
         )
-        FilledTonalIconButton(
-            onClick = onIncrement,
-            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = contentColor.copy(alpha = 0.20f),
-                contentColor   = contentColor
-            )
-        ) {
+        FilledTonalIconButton(onClick = onIncrement) {
             Text("+", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = contentColor)
         }
     }
