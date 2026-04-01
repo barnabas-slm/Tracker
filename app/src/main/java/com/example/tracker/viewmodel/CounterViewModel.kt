@@ -469,6 +469,33 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
         }
     }
 
+    fun removeAllGroups() {
+        val activeId = _activeListId.value
+        val groupIds = _groups.filter { it.listId == activeId }.map { it.id }.toSet()
+        if (groupIds.isEmpty()) return
+
+        val ungroupedCounters = mutableListOf<Counter>()
+
+        _groups.removeAll { it.listId == activeId }
+        _customOrder.removeAll { key -> groupIds.any { key == "g:$it" } }
+        _counters.replaceAll { counter ->
+            if (counter.groupId in groupIds) {
+                val ungrouped = counter.copy(groupId = null)
+                _customOrder.add("c:${counter.id}")
+                ungroupedCounters.add(ungrouped)
+                ungrouped
+            } else {
+                counter
+            }
+        }
+
+        saveOrder()
+        viewModelScope.launch {
+            db.counterGroupDao().deleteByListId(activeId)
+            ungroupedCounters.forEach { db.counterDao().upsert(it) }
+        }
+    }
+
     fun updateGroupName(groupId: String, name: String) {
         val i = _groups.indexOfFirst { it.id == groupId }
         if (i == -1) return

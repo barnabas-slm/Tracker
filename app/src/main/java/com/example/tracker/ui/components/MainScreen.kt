@@ -228,6 +228,16 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                                 }
                             )
                             DropdownMenuItem(
+                                text = { Text("Delete All Groups", color = MaterialTheme.colorScheme.error) },
+                                onClick = {
+                                    showMenu = false
+                                    viewModel.groups
+                                        .filter { it.listId == activeListId }
+                                        .forEach { groupExpandedState.remove(it.id) }
+                                    viewModel.removeAllGroups()
+                                }
+                            )
+                            DropdownMenuItem(
                                 text = { Text("Delete All Counters", color = MaterialTheme.colorScheme.error) },
                                 onClick = { showMenu = false; viewModel.removeAllCounters() }
                             )
