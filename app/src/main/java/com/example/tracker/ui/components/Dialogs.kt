@@ -135,6 +135,7 @@ fun CounterSettingsDialog(
     ) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
+            containerColor = MaterialTheme.colorScheme.surface,
             topBar = {
                 TopAppBar(
                     title = { Text("Counter Settings") },
@@ -299,6 +300,7 @@ fun GroupSettingsDialog(
     ) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
+            containerColor = MaterialTheme.colorScheme.surface,
             topBar = {
                 TopAppBar(
                     title = { Text("Group Settings") },
@@ -416,6 +418,7 @@ fun ListSettingsDialog(
     ) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
+            containerColor = MaterialTheme.colorScheme.surface,
             topBar = {
                 TopAppBar(
                     title = { Text("List Settings") },
