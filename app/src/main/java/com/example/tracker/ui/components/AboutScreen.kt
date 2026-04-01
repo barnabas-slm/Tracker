@@ -73,7 +73,7 @@ fun AboutScreen(onBack: () -> Unit) {
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "v0.1.2",
+                text = "v0.1.3",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
