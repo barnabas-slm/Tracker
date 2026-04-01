@@ -5,7 +5,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -51,7 +55,11 @@ fun CounterCard(
                 contentColor = contentColor
             )
         ) {
-            Text("-", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = contentColor)
+            Icon(
+                imageVector = Icons.Filled.Remove,
+                contentDescription = "Decrement",
+                tint = contentColor
+            )
         }
         Text(
             text = counter.value.toString(),
@@ -69,7 +77,11 @@ fun CounterCard(
                 contentColor = contentColor
             )
         ) {
-            Text("+", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = contentColor)
+            Icon(
+                imageVector = Icons.Filled.Add,
+                contentDescription = "Increment",
+                tint = contentColor
+            )
         }
     }
 }

@@ -22,6 +22,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FormatColorReset
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -52,7 +54,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
@@ -256,7 +257,11 @@ fun CounterSettingsDialog(
                                 .clickable { showCustomPicker = true },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("✎", fontSize = 14.sp, color = Color.White)
+                            Icon(
+                                imageVector = Icons.Filled.Palette,
+                                contentDescription = "Custom color",
+                                tint = Color.White
+                            )
                         }
                     }
                     if (showCustomPicker) {
@@ -372,7 +377,11 @@ fun GroupSettingsDialog(
                             .clickable { showCustomPicker = true },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("✎", fontSize = 14.sp, color = Color.White)
+                        Icon(
+                            imageVector = Icons.Filled.Palette,
+                            contentDescription = "Custom color",
+                            tint = Color.White
+                        )
                     }
                 }
 
@@ -570,7 +579,11 @@ private fun NoColorSwatch(selected: Boolean, onClick: () -> Unit) {
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
-        Text("X", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(
+            imageVector = Icons.Filled.FormatColorReset,
+            contentDescription = "No color",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
