@@ -41,8 +41,8 @@ fun CounterCard(
     ) {
         Text(
             text = counter.name,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Medium,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Normal,
             color = contentColor,
             modifier = Modifier
                 .weight(1f)
@@ -51,7 +51,7 @@ fun CounterCard(
         FilledTonalIconButton(
             onClick = onDecrement,
             colors = IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = contentColor.copy(alpha = 0.20f),
+                containerColor = contentColor.copy(alpha = 0.08f),
                 contentColor = contentColor
             )
         ) {
@@ -64,7 +64,7 @@ fun CounterCard(
         Text(
             text = counter.value.toString(),
             fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.Normal,
             color = contentColor,
             textAlign = TextAlign.Center,
             maxLines = 1,
@@ -73,7 +73,7 @@ fun CounterCard(
         FilledTonalIconButton(
             onClick = onIncrement,
             colors = IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = contentColor.copy(alpha = 0.20f),
+                containerColor = contentColor.copy(alpha = 0.08f),
                 contentColor = contentColor
             )
         ) {
