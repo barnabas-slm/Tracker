@@ -20,7 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
-import androidx.compose.material3.SecondaryScrollableTabRow
+import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
@@ -180,6 +180,7 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                     scrollBehavior = topAppBarScrollBehavior,
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor         = MaterialTheme.colorScheme.background,
+                        scrolledContainerColor = MaterialTheme.colorScheme.background,
                         titleContentColor      = MaterialTheme.colorScheme.onBackground,
                         actionIconContentColor = MaterialTheme.colorScheme.onBackground
                     ),
@@ -240,15 +241,16 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                 // ScrollableTabRow crashes with IndexOutOfBoundsException when
                 // selectedTabIndex >= 0 but the tab list is still empty.
                 if (lists.isNotEmpty()) {
-                    SecondaryScrollableTabRow(
+                    PrimaryScrollableTabRow(
                         selectedTabIndex = selectedTabIndex,
                         modifier         = Modifier.fillMaxWidth(),
                         edgePadding      = 0.dp,
                         containerColor   = MaterialTheme.colorScheme.background,
                         contentColor     = MaterialTheme.colorScheme.onBackground,
+                        divider          = {},
                         indicator = {
                             if (selectedTabIndex < lists.size) {
-                                TabRowDefaults.SecondaryIndicator(
+                                TabRowDefaults.PrimaryIndicator(
                                     modifier = Modifier
                                         .tabIndicatorOffset(
                                             selectedTabIndex = selectedTabIndex,
