@@ -358,7 +358,7 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
         val group = viewModel.groups.find { it.id == gid } ?: run { editingGroupId = null; return@let }
         GroupSettingsDialog(
             groupName       = group.name,
-            groupColorValue = group.colorValue,
+            groupColorValue = group.colorValue.takeIf { it != 0L },
             onDismiss       = { editingGroupId = null },
             onSave          = { newName, newColor ->
                 viewModel.updateGroupName(gid, newName)

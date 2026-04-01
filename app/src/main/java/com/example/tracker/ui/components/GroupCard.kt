@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -22,11 +23,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.tracker.data.Counter
 import com.example.tracker.data.CounterGroup
+
+private fun Color.contrastTextColor(): Color {
+    val luminance = 0.299f * red + 0.587f * green + 0.114f * blue
+    return if (luminance > 0.6f) Color(0xFF212121) else Color.White
+}
 
 @Composable
 fun GroupCard(
@@ -48,11 +55,12 @@ fun GroupCard(
         animationSpec = tween(durationMillis = 300),
         label         = "arrowRotation"
     )
+    val backgroundColor = group.colorValue.takeIf { it != 0L }?.let { Color(it) }
+    val titleColor = backgroundColor?.contrastTextColor() ?: MaterialTheme.colorScheme.onSurface
+    val totalColor = if (backgroundColor != null) titleColor.copy(alpha = 0.85f)
+        else MaterialTheme.colorScheme.onSurfaceVariant
 
-    OutlinedCard(
-        modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else 0.dp)
-    ) {
+    val content: @Composable () -> Unit = {
         Column(
             modifier = Modifier
                 .padding(12.dp)
@@ -70,20 +78,20 @@ fun GroupCard(
                     text       = group.name,
                     style      = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color      = MaterialTheme.colorScheme.onSurface,
+                    color      = titleColor,
                     modifier   = Modifier.weight(1f).clickable { onTitleClick() }
                 )
                 Text(
                     text       = counters.sumOf { it.value }.toString(),
                     style      = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color      = MaterialTheme.colorScheme.onSurfaceVariant
+                    color      = totalColor
                 )
                 IconButton(onClick = { groupExpandedState[group.id] = !expanded }) {
                     Icon(
                         imageVector        = Icons.Default.ExpandMore,
                         contentDescription = if (expanded) "Collapse" else "Expand",
-                        tint               = MaterialTheme.colorScheme.onSurface,
+                        tint               = titleColor,
                         modifier           = Modifier.rotate(arrowRotation)
                     )
                 }
@@ -107,6 +115,19 @@ fun GroupCard(
                 }
             }
         }
+    }
+
+    if (backgroundColor != null) {
+        Card(
+            modifier = modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = backgroundColor),
+            elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else 0.dp)
+        ) { content() }
+    } else {
+        OutlinedCard(
+            modifier = modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 8.dp else 0.dp)
+        ) { content() }
     }
 }
 

@@ -351,22 +351,13 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
 
     fun addCounter(name: String? = null, groupId: String? = null) {
         counterSequence++
-        val paletteColors = listOf(
-            0xFFF48FB1L, 0xFFEF9A9AL, 0xFFFFCC80L, 0xFFFFE082L, 0xFFFFF59DL,
-            0xFFA5D6A7L, 0xFF80CBC4L, 0xFF90CAF9L, 0xFF9FA8DAL, 0xFFCE93D8L
-        )
         val activeId = _activeListId.value
-        val autoColor: Long? = if (groupId == null) {
-            val usedColors = _counters.filter { it.groupId == null && it.listId == activeId }.mapNotNull { it.color }.toSet()
-            paletteColors.firstOrNull { it !in usedColors }
-                ?: paletteColors[counterSequence % paletteColors.size]
-        } else null
         val counter = Counter(
             id      = UUID.randomUUID().toString(),
             name    = name ?: "Counter $counterSequence",
             value   = 0,
             groupId = groupId,
-            color   = autoColor,
+            color   = null,
             listId  = activeId
         )
         _counters.add(counter)
@@ -451,15 +442,8 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
     fun addGroup(name: String? = null, colorValue: Long? = null) {
         groupSequence++
         val resolvedName = name ?: "Group $groupSequence"
-        val paletteColors = listOf(
-            0xFFE53935L, 0xFFF4511EL, 0xFFFFB300L, 0xFFFDD835L, 0xFF43A047L,
-            0xFF00897BL, 0xFF1E88E5L, 0xFF3949ABL, 0xFF8E24AAL, 0xFFD81B60L,
-        )
         val activeId = _activeListId.value
-        val usedColors  = _groups.filter { it.listId == activeId }.map { it.colorValue }.toSet()
-        val chosenColor = colorValue
-            ?: paletteColors.firstOrNull { it !in usedColors }
-            ?: paletteColors[_groups.size % paletteColors.size]
+        val chosenColor = colorValue ?: 0L
         val group = CounterGroup(UUID.randomUUID().toString(), resolvedName, chosenColor, activeId)
         _groups.add(group)
         _customOrder.add("g:${group.id}")
@@ -492,10 +476,10 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
         viewModelScope.launch { db.counterGroupDao().upsert(_groups[i]) }
     }
 
-    fun updateGroupColor(groupId: String, colorValue: Long) {
+    fun updateGroupColor(groupId: String, colorValue: Long?) {
         val i = _groups.indexOfFirst { it.id == groupId }
         if (i == -1) return
-        _groups[i] = _groups[i].copy(colorValue = colorValue)
+        _groups[i] = _groups[i].copy(colorValue = colorValue ?: 0L)
         viewModelScope.launch { db.counterGroupDao().upsert(_groups[i]) }
     }
 
@@ -538,15 +522,6 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
             position = _lists.size
         )
 
-        val groupPalette = listOf(
-            0xFFE53935L, 0xFFF4511EL, 0xFFFFB300L, 0xFFFDD835L, 0xFF43A047L,
-            0xFF00897BL, 0xFF1E88E5L, 0xFF3949ABL, 0xFF8E24AAL, 0xFFD81B60L,
-        )
-        val counterPalette = listOf(
-            0xFFF48FB1L, 0xFFEF9A9AL, 0xFFFFCC80L, 0xFFFFE082L, 0xFFFFF59DL,
-            0xFFA5D6A7L, 0xFF80CBC4L, 0xFF90CAF9L, 0xFF9FA8DAL, 0xFFCE93D8L,
-        )
-
         val dataLines = csvContent.lines()
             .filter { it.isNotBlank() }
             .let { lines ->
@@ -559,8 +534,6 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
         val newCounters = mutableListOf<Counter>()
         val newOrder    = mutableListOf<String>()
         val groupMap    = mutableMapOf<String, CounterGroup>()   // group name → entity
-        var ungroupedCount = 0
-
         dataLines.forEach { line ->
             val fields      = parseCsvLine(line)
             if (fields.size < 3) return@forEach
@@ -570,14 +543,12 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
 
             if (groupName.isEmpty()) {
                 counterSequence++
-                val color = counterPalette[ungroupedCount % counterPalette.size]
-                ungroupedCount++
                 val counter = Counter(
                     id      = UUID.randomUUID().toString(),
                     name    = counterName.ifBlank { "Counter $counterSequence" },
                     value   = value,
                     groupId = null,
-                    color   = color,
+                    color   = null,
                     listId  = list.id
                 )
                 newCounters.add(counter)
@@ -585,10 +556,7 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
             } else {
                 val group = groupMap.getOrPut(groupName) {
                     groupSequence++
-                    val usedColors = groupMap.values.map { it.colorValue }.toSet()
-                    val color = groupPalette.firstOrNull { it !in usedColors }
-                        ?: groupPalette[groupMap.size % groupPalette.size]
-                    val g = CounterGroup(UUID.randomUUID().toString(), groupName, color, list.id)
+                    val g = CounterGroup(UUID.randomUUID().toString(), groupName, 0L, list.id)
                     newGroups.add(g)
                     newOrder.add("g:${g.id}")
                     g
