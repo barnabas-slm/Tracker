@@ -15,9 +15,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -40,6 +42,8 @@ fun CountersScreen(
     lastAddedKey: String? = null,
     onLastAddedConsumed: () -> Unit = {}
 ) {
+    val hapticFeedback = LocalHapticFeedback.current
+
     if (displayItems.isEmpty()) {
         Column(
             modifier = modifier.fillMaxSize().padding(32.dp),
@@ -100,7 +104,11 @@ fun CountersScreen(
             val dragMod = if (sortOrder == SortOrder.CUSTOM) {
                 Modifier.pointerInput(stableKey, reorderState) {
                     detectDragGesturesAfterLongPress(
-                        onDragStart = { reorderState.startDragByKey(stableKey) },
+                        onDragStart = {
+                            if (reorderState.startDragByKey(stableKey)) {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                            }
+                        },
                         onDrag      = { change, dragAmount ->
                             change.consume()
                             reorderState.onDrag(dragAmount.y)
