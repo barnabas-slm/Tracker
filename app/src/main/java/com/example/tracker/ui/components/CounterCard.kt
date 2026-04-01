@@ -15,8 +15,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -33,6 +35,8 @@ fun CounterCard(
     modifier: Modifier = Modifier,
     contentColor: Color = MaterialTheme.colorScheme.onSurface
 ) {
+    val hapticFeedback = LocalHapticFeedback.current
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -49,7 +53,10 @@ fun CounterCard(
                 .clickable { onTitleClick() }
         )
         FilledTonalIconButton(
-            onClick = onDecrement,
+            onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onDecrement()
+            },
             colors = IconButtonDefaults.filledTonalIconButtonColors(
                 containerColor = contentColor.copy(alpha = 0.08f),
                 contentColor = contentColor
@@ -71,7 +78,10 @@ fun CounterCard(
             modifier = Modifier.width(72.dp)
         )
         FilledTonalIconButton(
-            onClick = onIncrement,
+            onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onIncrement()
+            },
             colors = IconButtonDefaults.filledTonalIconButtonColors(
                 containerColor = contentColor.copy(alpha = 0.08f),
                 contentColor = contentColor

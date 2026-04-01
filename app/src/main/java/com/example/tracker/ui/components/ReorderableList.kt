@@ -58,11 +58,12 @@ class ReorderState(val lazyListState: LazyListState) {
 
     // ── Called from gesture handlers ─────────────────────────────────────────
 
-    /** Starts a drag for the item identified by [key]. */
-    fun startDragByKey(key: String) {
-        if (keyToIndex[key] == null) return
+    /** Starts a drag for the item identified by [key]. Returns true if drag state began. */
+    fun startDragByKey(key: String): Boolean {
+        if (keyToIndex[key] == null) return false
         draggingKey = key
         draggingOffset = 0f
+        return true
     }
 
     /** Accumulates [delta] and swaps with an adjacent item if the threshold is crossed. */
