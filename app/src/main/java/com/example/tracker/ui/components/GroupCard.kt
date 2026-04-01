@@ -109,7 +109,8 @@ fun GroupCard(
                             counter      = counter,
                             onIncrement  = { onIncrement(counter.id) },
                             onDecrement  = { onDecrement(counter.id) },
-                            onTitleClick = { onCounterClick(counter.id) }
+                            onTitleClick = { onCounterClick(counter.id) },
+                            contentColor = titleColor
                         )
                     }
                 }
