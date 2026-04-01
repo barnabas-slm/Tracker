@@ -40,10 +40,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -76,6 +77,7 @@ fun TrackerApp(viewModel: CounterViewModel) {
 @Composable
 fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
     val context = LocalContext.current
+    val topAppBarScrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     var showMenu         by rememberSaveable { mutableStateOf(false) }
     var showFabMenu      by rememberSaveable { mutableStateOf(false) }
     var showSortSheet    by rememberSaveable { mutableStateOf(false) }
@@ -143,6 +145,7 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
     }
 
     Scaffold(
+        modifier = Modifier.nestedScroll(topAppBarScrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             Box {
@@ -174,6 +177,7 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
             Column {
                 TopAppBar(
                     title = { Text("Tracker", fontWeight = FontWeight.Bold) },
+                    scrollBehavior = topAppBarScrollBehavior,
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor         = MaterialTheme.colorScheme.surface,
                         titleContentColor      = MaterialTheme.colorScheme.onSurface,
