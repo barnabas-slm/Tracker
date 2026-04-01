@@ -179,9 +179,9 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                     title = { Text("Tracker", fontWeight = FontWeight.Bold) },
                     scrollBehavior = topAppBarScrollBehavior,
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor         = MaterialTheme.colorScheme.surface,
-                        titleContentColor      = MaterialTheme.colorScheme.onSurface,
-                        actionIconContentColor = MaterialTheme.colorScheme.onSurface
+                        containerColor         = MaterialTheme.colorScheme.background,
+                        titleContentColor      = MaterialTheme.colorScheme.onBackground,
+                        actionIconContentColor = MaterialTheme.colorScheme.onBackground
                     ),
                     actions = {
                         // Sort — opens bottom sheet
@@ -244,8 +244,8 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                         selectedTabIndex = selectedTabIndex,
                         modifier         = Modifier.fillMaxWidth(),
                         edgePadding      = 0.dp,
-                        containerColor   = MaterialTheme.colorScheme.surface,
-                        contentColor     = MaterialTheme.colorScheme.onSurface,
+                        containerColor   = MaterialTheme.colorScheme.background,
+                        contentColor     = MaterialTheme.colorScheme.onBackground,
                         indicator = {
                             if (selectedTabIndex < lists.size) {
                                 TabRowDefaults.SecondaryIndicator(
