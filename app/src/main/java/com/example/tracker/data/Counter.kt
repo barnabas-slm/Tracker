@@ -24,7 +24,7 @@ data class Counter(
 data class CounterGroup(
     @PrimaryKey val id: String = "",
     val name: String = "Group",
-    val colorValue: Long = 0xFF1E88E5L,
+    val colorValue: Long = 0L,
     val listId: String = ""
 )
 
