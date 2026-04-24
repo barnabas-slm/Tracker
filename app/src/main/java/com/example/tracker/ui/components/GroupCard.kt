@@ -29,6 +29,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.tracker.data.Counter
 import com.example.tracker.data.CounterGroup
+import com.example.tracker.data.GroupMetric
 
 private fun Color.contrastTextColor(): Color {
     val luminance = 0.299f * red + 0.587f * green + 0.114f * blue
@@ -44,6 +45,21 @@ fun GroupCard(
     onDecrement: (String) -> Unit,
     onCounterClick: (String) -> Unit,
     groupExpandedState: MutableMap<String, Boolean>,
+    onCalculateMetric: (List<Counter>, GroupMetric) -> Double = { c, m ->
+        when (m) {
+            GroupMetric.SUM -> c.sumOf { it.value }.toDouble()
+            GroupMetric.AVERAGE -> if (c.isEmpty()) 0.0 else c.sumOf { it.value }.toDouble() / c.size
+            GroupMetric.MAXIMUM -> if (c.isEmpty()) 0.0 else c.maxOf { it.value }.toDouble()
+            GroupMetric.MINIMUM -> if (c.isEmpty()) 0.0 else c.minOf { it.value }.toDouble()
+            GroupMetric.MODE -> {
+                if (c.isEmpty()) 0.0
+                else {
+                    val counts = c.groupingBy { it.value }.eachCount()
+                    counts.maxByOrNull { it.value }?.key?.toDouble() ?: 0.0
+                }
+            }
+        }
+    },
     modifier: Modifier = Modifier,
     isDragging: Boolean = false,
     dragModifier: Modifier = Modifier
@@ -59,6 +75,21 @@ fun GroupCard(
     val titleColor = backgroundColor?.contrastTextColor() ?: MaterialTheme.colorScheme.onSurface
     val totalColor = if (backgroundColor != null) titleColor.copy(alpha = 0.85f)
         else MaterialTheme.colorScheme.onSurfaceVariant
+
+    // Calculate the metric value
+    val metricValue = onCalculateMetric(counters, group.metric)
+
+    // Format the metric display with up to 2 decimal places for non-integer values
+    val metricText = when (group.metric) {
+        GroupMetric.AVERAGE -> {
+            if (metricValue == metricValue.toInt().toDouble()) {
+                metricValue.toInt().toString()
+            } else {
+                String.format("%.2f", metricValue)
+            }
+        }
+        else -> metricValue.toInt().toString()
+    }
 
     val content: @Composable () -> Unit = {
         Column(
@@ -82,7 +113,7 @@ fun GroupCard(
                     modifier   = Modifier.weight(1f).clickable { onTitleClick() }
                 )
                 Text(
-                    text       = counters.sumOf { it.value }.toString(),
+                    text       = metricText,
                     style      = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color      = totalColor

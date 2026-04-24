@@ -56,6 +56,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.tracker.data.GroupMetric
 
 // ── Shared pastel colour palette ──────────────────────────────────────────────
 val colorOptions: List<Pair<String, Long>> = listOf(
@@ -283,13 +284,16 @@ fun CounterSettingsDialog(
 fun GroupSettingsDialog(
     groupName: String,
     groupColorValue: Long?,
+    groupMetric: GroupMetric = GroupMetric.SUM,
     onDismiss: () -> Unit,
-    onSave: (newName: String, newColor: Long?) -> Unit,
+    onSave: (newName: String, newColor: Long?, newMetric: GroupMetric) -> Unit,
     onDelete: () -> Unit,
 ) {
     var name  by remember { mutableStateOf(groupName) }
     var color by remember { mutableStateOf(groupColorValue) }
+    var metric by remember { mutableStateOf(groupMetric) }
     var showCustomPicker by remember { mutableStateOf(false) }
+    var metricDropdownExpanded by remember { mutableStateOf(false) }
 
     // Pre-compute whether current color is a palette color
     val isPaletteColor = color != null && colorOptions.any { it.second == color }
@@ -328,7 +332,7 @@ fun GroupSettingsDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Button(
-                        onClick = { onSave(name.trim().ifBlank { groupName }, color) }
+                        onClick = { onSave(name.trim().ifBlank { groupName }, color, metric) }
                     ) { Text("Save") }
                 }
             }
@@ -343,6 +347,38 @@ fun GroupSettingsDialog(
             ) {
                 OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Group Name") },
                     modifier = Modifier.fillMaxWidth(), singleLine = true)
+
+                // Metric dropdown
+                ExposedDropdownMenuBox(
+                    expanded = metricDropdownExpanded,
+                    onExpandedChange = { metricDropdownExpanded = !metricDropdownExpanded },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = metric.name.lowercase().replaceFirstChar { it.uppercase() },
+                        onValueChange = {},
+                        label = { Text("Metric") },
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = metricDropdownExpanded) },
+                        modifier = Modifier
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable)
+                            .fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = metricDropdownExpanded,
+                        onDismissRequest = { metricDropdownExpanded = false }
+                    ) {
+                        GroupMetric.values().forEach { metricOption ->
+                            DropdownMenuItem(
+                                text = { Text(metricOption.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                                onClick = {
+                                    metric = metricOption
+                                    metricDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
 
                 Text("Color", style = MaterialTheme.typography.labelLarge)
 

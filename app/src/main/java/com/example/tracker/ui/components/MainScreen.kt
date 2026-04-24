@@ -55,6 +55,7 @@ import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.example.tracker.viewmodel.CounterViewModel
+import com.example.tracker.data.GroupMetric
 import java.io.File
 
 @Composable
@@ -371,10 +372,12 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
         GroupSettingsDialog(
             groupName       = group.name,
             groupColorValue = group.colorValue.takeIf { it != 0L },
+            groupMetric     = group.metric,
             onDismiss       = { editingGroupId = null },
-            onSave          = { newName, newColor ->
+            onSave          = { newName, newColor, newMetric ->
                 viewModel.updateGroupName(gid, newName)
                 viewModel.updateGroupColor(gid, newColor)
+                viewModel.updateGroupMetric(gid, newMetric)
                 editingGroupId = null
             },
             onDelete = { viewModel.removeGroup(gid); editingGroupId = null }
