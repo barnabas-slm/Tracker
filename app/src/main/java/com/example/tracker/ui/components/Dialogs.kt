@@ -1,5 +1,11 @@
 package com.example.tracker.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,6 +33,7 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -53,6 +60,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -71,6 +79,60 @@ val colorOptions: List<Pair<String, Long>> = listOf(
     "Periwinkle" to 0xFF9FA8DAL,
     "Lavender"   to 0xFFCE93D8L,
 )
+
+// ── Reusable animated delete confirmation overlay ─────────────────────────────
+@Composable
+fun ConfirmDeleteOverlay(
+    visible: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(animationSpec = tween(160)),
+        exit  = fadeOut(animationSpec = tween(120))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.32f))
+                .clickable { onDismiss() },
+            contentAlignment = Alignment.Center
+        ) {
+            Card(
+                modifier = Modifier
+                    .padding(24.dp)
+                    .animateEnterExit(
+                        enter = scaleIn(animationSpec = tween(180), initialScale = 0.96f),
+                        exit  = scaleOut(animationSpec = tween(140), targetScale = 0.98f)
+                    )
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Are you sure?",
+                        style = MaterialTheme.typography.titleLarge,
+                        textAlign = TextAlign.Start
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = { onDismiss() }) { Text("Cancel") }
+                        TextButton(onClick = {
+                            onDismiss()
+                            onConfirm()
+                        }) {
+                            Text("Delete", color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 // ── Add counter ───────────────────────────────────────────────────────────────
 @Composable
@@ -447,6 +509,7 @@ fun ListSettingsDialog(
     onDelete: () -> Unit,
 ) {
     var name by remember { mutableStateOf(listName) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -465,7 +528,7 @@ fun ListSettingsDialog(
                     },
                     actions = {
                         if (!isOnlyList) {
-                            IconButton(onClick = onDelete) {
+                            IconButton(onClick = { showDeleteConfirm = true }) {
                                 Icon(
                                     imageVector = Icons.Outlined.Delete,
                                     contentDescription = "Delete List"
@@ -511,6 +574,12 @@ fun ListSettingsDialog(
                 }
             }
         }
+
+        ConfirmDeleteOverlay(
+            visible = showDeleteConfirm,
+            onDismiss = { showDeleteConfirm = false },
+            onConfirm = onDelete
+        )
     }
 }
 

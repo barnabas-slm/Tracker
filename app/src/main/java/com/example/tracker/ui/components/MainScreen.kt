@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -25,6 +26,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
@@ -85,6 +87,8 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
     var editingCounterId by rememberSaveable { mutableStateOf<String?>(null) }
     var editingGroupId   by rememberSaveable { mutableStateOf<String?>(null) }
     var editingListId    by rememberSaveable { mutableStateOf<String?>(null) }
+    var confirmDeleteAllGroups by rememberSaveable { mutableStateOf(false) }
+    var confirmDeleteAllCounters by rememberSaveable { mutableStateOf(false) }
 
     // Per-group expanded state: true = expanded (default), false = collapsed
     val groupExpandedState = remember { mutableStateMapOf<String, Boolean>() }
@@ -145,6 +149,7 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
         } catch (_: Exception) { /* ignore read errors silently */ }
     }
 
+    Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
         modifier = Modifier.nestedScroll(topAppBarScrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
@@ -232,15 +237,15 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                                 text = { Text("Delete All Groups", color = MaterialTheme.colorScheme.error) },
                                 onClick = {
                                     showMenu = false
-                                    viewModel.groups
-                                        .filter { it.listId == activeListId }
-                                        .forEach { groupExpandedState.remove(it.id) }
-                                    viewModel.removeAllGroups()
+                                    confirmDeleteAllGroups = true
                                 }
                             )
                             DropdownMenuItem(
                                 text = { Text("Delete All Counters", color = MaterialTheme.colorScheme.error) },
-                                onClick = { showMenu = false; viewModel.removeAllCounters() }
+                                onClick = {
+                                    showMenu = false
+                                    confirmDeleteAllCounters = true
+                                }
                             )
                             DropdownMenuItem(text = { Text("About Tracker") }, onClick = { showMenu = false; onNavigateToAbout() })
                         }
@@ -333,6 +338,25 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
         )
     }
 
+    ConfirmDeleteOverlay(
+        visible = confirmDeleteAllGroups,
+        onDismiss = { confirmDeleteAllGroups = false },
+        onConfirm = {
+            viewModel.groups
+                .filter { it.listId == activeListId }
+                .forEach { groupExpandedState.remove(it.id) }
+            viewModel.removeAllGroups()
+        }
+    )
+
+    ConfirmDeleteOverlay(
+        visible = confirmDeleteAllCounters,
+        onDismiss = { confirmDeleteAllCounters = false },
+        onConfirm = { viewModel.removeAllCounters() }
+    )
+
+    } // end Box
+
     // ── Sort bottom sheet ─────────────────────────────────────────────────────
 
     if (showSortSheet) {
@@ -401,4 +425,6 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
             }
         )
     }
+
 }
+
