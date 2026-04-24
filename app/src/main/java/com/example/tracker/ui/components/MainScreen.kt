@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -25,6 +26,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
@@ -85,6 +87,9 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
     var editingCounterId by rememberSaveable { mutableStateOf<String?>(null) }
     var editingGroupId   by rememberSaveable { mutableStateOf<String?>(null) }
     var editingListId    by rememberSaveable { mutableStateOf<String?>(null) }
+    var confirmDeleteAllGroups by rememberSaveable { mutableStateOf(false) }
+    var confirmDeleteAllCounters by rememberSaveable { mutableStateOf(false) }
+    var confirmDeleteListId by rememberSaveable { mutableStateOf<String?>(null) }
 
     // Per-group expanded state: true = expanded (default), false = collapsed
     val groupExpandedState = remember { mutableStateMapOf<String, Boolean>() }
@@ -232,15 +237,15 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                                 text = { Text("Delete All Groups", color = MaterialTheme.colorScheme.error) },
                                 onClick = {
                                     showMenu = false
-                                    viewModel.groups
-                                        .filter { it.listId == activeListId }
-                                        .forEach { groupExpandedState.remove(it.id) }
-                                    viewModel.removeAllGroups()
+                                    confirmDeleteAllGroups = true
                                 }
                             )
                             DropdownMenuItem(
                                 text = { Text("Delete All Counters", color = MaterialTheme.colorScheme.error) },
-                                onClick = { showMenu = false; viewModel.removeAllCounters() }
+                                onClick = {
+                                    showMenu = false
+                                    confirmDeleteAllCounters = true
+                                }
                             )
                             DropdownMenuItem(text = { Text("About Tracker") }, onClick = { showMenu = false; onNavigateToAbout() })
                         }
@@ -396,8 +401,69 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                 editingListId = null
             },
             onDelete    = {
-                viewModel.removeList(lid)
+                confirmDeleteListId = lid
                 editingListId = null
+            }
+        )
+    }
+
+    if (confirmDeleteAllGroups) {
+        AlertDialog(
+            onDismissRequest = { confirmDeleteAllGroups = false },
+            title = { Text("Delete all groups?") },
+            text = { Text("This will remove all groups in the current list and move their counters to ungrouped.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.groups
+                        .filter { it.listId == activeListId }
+                        .forEach { groupExpandedState.remove(it.id) }
+                    viewModel.removeAllGroups()
+                    confirmDeleteAllGroups = false
+                }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDeleteAllGroups = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    if (confirmDeleteAllCounters) {
+        AlertDialog(
+            onDismissRequest = { confirmDeleteAllCounters = false },
+            title = { Text("Delete all counters?") },
+            text = { Text("This will permanently delete all counters in the current list.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.removeAllCounters()
+                    confirmDeleteAllCounters = false
+                }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDeleteAllCounters = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    confirmDeleteListId?.let { listId ->
+        val listName = viewModel.lists.find { it.id == listId }?.name ?: "this list"
+        AlertDialog(
+            onDismissRequest = { confirmDeleteListId = null },
+            title = { Text("Delete list?") },
+            text = { Text("Delete \"$listName\" and all of its groups and counters?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.removeList(listId)
+                    confirmDeleteListId = null
+                }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDeleteListId = null }) { Text("Cancel") }
             }
         )
     }
