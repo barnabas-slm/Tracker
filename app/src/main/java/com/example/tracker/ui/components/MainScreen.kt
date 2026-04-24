@@ -410,8 +410,7 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
     if (confirmDeleteAllGroups) {
         AlertDialog(
             onDismissRequest = { confirmDeleteAllGroups = false },
-            title = { Text("Delete all groups?") },
-            text = { Text("This will remove all groups in the current list and move their counters to ungrouped.") },
+            title = { Text("Are you sure?") },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.groups
@@ -432,8 +431,7 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
     if (confirmDeleteAllCounters) {
         AlertDialog(
             onDismissRequest = { confirmDeleteAllCounters = false },
-            title = { Text("Delete all counters?") },
-            text = { Text("This will permanently delete all counters in the current list.") },
+            title = { Text("Are you sure?") },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.removeAllCounters()
@@ -449,11 +447,9 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
     }
 
     confirmDeleteListId?.let { listId ->
-        val listName = viewModel.lists.find { it.id == listId }?.name ?: "this list"
         AlertDialog(
             onDismissRequest = { confirmDeleteListId = null },
-            title = { Text("Delete list?") },
-            text = { Text("Delete \"$listName\" and all of its groups and counters?") },
+            title = { Text("Are you sure?") },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.removeList(listId)
