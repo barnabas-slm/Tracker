@@ -89,10 +89,8 @@ fun ConfirmDeleteOverlay(
 ) {
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn(animationSpec = tween(160)) +
-                scaleIn(animationSpec = tween(180), initialScale = 0.96f),
-        exit  = fadeOut(animationSpec = tween(120)) +
-                scaleOut(animationSpec = tween(140), targetScale = 0.98f)
+        enter = fadeIn(animationSpec = tween(160)),
+        exit  = fadeOut(animationSpec = tween(120))
     ) {
         Box(
             modifier = Modifier
@@ -101,7 +99,14 @@ fun ConfirmDeleteOverlay(
                 .clickable { onDismiss() },
             contentAlignment = Alignment.Center
         ) {
-            Card(modifier = Modifier.padding(24.dp)) {
+            Card(
+                modifier = Modifier
+                    .padding(24.dp)
+                    .animateEnterExit(
+                        enter = scaleIn(animationSpec = tween(180), initialScale = 0.96f),
+                        exit  = scaleOut(animationSpec = tween(140), targetScale = 0.98f)
+                    )
+            ) {
                 Column(
                     modifier = Modifier.padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
