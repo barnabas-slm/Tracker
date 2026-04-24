@@ -89,7 +89,6 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
     var editingListId    by rememberSaveable { mutableStateOf<String?>(null) }
     var confirmDeleteAllGroups by rememberSaveable { mutableStateOf(false) }
     var confirmDeleteAllCounters by rememberSaveable { mutableStateOf(false) }
-    var confirmDeleteListId by rememberSaveable { mutableStateOf<String?>(null) }
 
     // Per-group expanded state: true = expanded (default), false = collapsed
     val groupExpandedState = remember { mutableStateMapOf<String, Boolean>() }
@@ -401,7 +400,7 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                 editingListId = null
             },
             onDelete    = {
-                confirmDeleteListId = lid
+                viewModel.removeList(lid)
                 editingListId = null
             }
         )
@@ -446,21 +445,4 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
         )
     }
 
-    confirmDeleteListId?.let { listId ->
-        AlertDialog(
-            onDismissRequest = { confirmDeleteListId = null },
-            title = { Text("Are you sure?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.removeList(listId)
-                    confirmDeleteListId = null
-                }) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmDeleteListId = null }) { Text("Cancel") }
-            }
-        )
-    }
 }

@@ -447,6 +447,7 @@ fun ListSettingsDialog(
     onDelete: () -> Unit,
 ) {
     var name by remember { mutableStateOf(listName) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -465,7 +466,7 @@ fun ListSettingsDialog(
                     },
                     actions = {
                         if (!isOnlyList) {
-                            IconButton(onClick = onDelete) {
+                            IconButton(onClick = { showDeleteConfirm = true }) {
                                 Icon(
                                     imageVector = Icons.Outlined.Delete,
                                     contentDescription = "Delete List"
@@ -510,6 +511,24 @@ fun ListSettingsDialog(
                     Text("Export CSV")
                 }
             }
+        }
+
+        if (showDeleteConfirm) {
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirm = false },
+                title = { Text("Are you sure?") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showDeleteConfirm = false
+                        onDelete()
+                    }) {
+                        Text("Delete", color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+                }
+            )
         }
     }
 }
