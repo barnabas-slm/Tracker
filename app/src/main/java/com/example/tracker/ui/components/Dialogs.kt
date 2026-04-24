@@ -1,5 +1,11 @@
 package com.example.tracker.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,6 +33,7 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -53,6 +60,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -513,22 +521,46 @@ fun ListSettingsDialog(
             }
         }
 
-        if (showDeleteConfirm) {
-            AlertDialog(
-                onDismissRequest = { showDeleteConfirm = false },
-                title = { Text("Are you sure?") },
-                confirmButton = {
-                    TextButton(onClick = {
-                        showDeleteConfirm = false
-                        onDelete()
-                    }) {
-                        Text("Delete", color = MaterialTheme.colorScheme.error)
+        AnimatedVisibility(
+            visible = showDeleteConfirm,
+            enter = fadeIn(animationSpec = tween(160)) +
+                    scaleIn(animationSpec = tween(180), initialScale = 0.96f),
+            exit = fadeOut(animationSpec = tween(120)) +
+                   scaleOut(animationSpec = tween(140), targetScale = 0.98f)
+        ) {
+            // Keep confirmation in the same window to avoid abrupt stacked-dialog transitions.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.32f))
+                    .clickable { showDeleteConfirm = false },
+                contentAlignment = Alignment.Center
+            ) {
+                Card(modifier = Modifier.padding(24.dp)) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text(
+                            text = "Are you sure?",
+                            style = MaterialTheme.typography.titleLarge,
+                            textAlign = TextAlign.Start
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+                            TextButton(onClick = {
+                                showDeleteConfirm = false
+                                onDelete()
+                            }) {
+                                Text("Delete", color = MaterialTheme.colorScheme.error)
+                            }
+                        }
                     }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
                 }
-            )
+            }
         }
     }
 }
