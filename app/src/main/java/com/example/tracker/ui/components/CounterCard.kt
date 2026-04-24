@@ -54,7 +54,7 @@ fun CounterCard(
         )
         FilledTonalIconButton(
             onClick = {
-                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.KeyboardTap)
                 onDecrement()
             },
             colors = IconButtonDefaults.filledTonalIconButtonColors(
@@ -79,7 +79,7 @@ fun CounterCard(
         )
         FilledTonalIconButton(
             onClick = {
-                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.KeyboardTap)
                 onIncrement()
             },
             colors = IconButtonDefaults.filledTonalIconButtonColors(
