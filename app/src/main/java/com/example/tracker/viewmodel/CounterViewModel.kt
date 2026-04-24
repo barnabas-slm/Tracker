@@ -301,23 +301,28 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
         fun snapValue(counterId: String, live: Int) =
             _valueSortSnapshot.getOrDefault(counterId, live)
 
+        // Helper: calculate group metric value using snapped counter values for sorting
+        fun groupMetricForSort(group: CounterGroup): Double {
+            val countersInGroup = _counters.filter { it.groupId == group.id }
+            val snappedCounters = countersInGroup.map { it.copy(value = snapValue(it.id, it.value)) }
+            return calculateGroupMetric(snappedCounters, group.metric)
+        }
+
         return when (_sortOrder.value) {
             SortOrder.VALUE_HIGH_LOW -> all.sortedByDescending { item ->
                 when (item) {
                     is DisplayItem.Group ->
-                        _counters.filter { it.groupId == item.group.id }
-                                 .sumOf { snapValue(it.id, it.value) }
+                        groupMetricForSort(item.group)
                     is DisplayItem.UngroupedCounter ->
-                        snapValue(item.counter.id, item.counter.value)
+                        snapValue(item.counter.id, item.counter.value).toDouble()
                 }
             }
             SortOrder.VALUE_LOW_HIGH -> all.sortedBy { item ->
                 when (item) {
                     is DisplayItem.Group ->
-                        _counters.filter { it.groupId == item.group.id }
-                                 .sumOf { snapValue(it.id, it.value) }
+                        groupMetricForSort(item.group)
                     is DisplayItem.UngroupedCounter ->
-                        snapValue(item.counter.id, item.counter.value)
+                        snapValue(item.counter.id, item.counter.value).toDouble()
                 }
             }
             SortOrder.ALPHA_AZ -> all.sortedBy { item ->
