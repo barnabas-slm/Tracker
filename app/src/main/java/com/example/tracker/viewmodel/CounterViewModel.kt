@@ -16,6 +16,7 @@ import com.example.tracker.data.Counter
 import com.example.tracker.data.CounterGroup
 import com.example.tracker.data.CounterList
 import com.example.tracker.data.CustomOrderEntity
+import com.example.tracker.data.GroupMetric
 import com.example.tracker.data.TrackerDatabase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -510,6 +511,13 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
         viewModelScope.launch { db.counterGroupDao().upsert(_groups[i]) }
     }
 
+    fun updateGroupMetric(groupId: String, metric: GroupMetric) {
+        val i = _groups.indexOfFirst { it.id == groupId }
+        if (i == -1) return
+        _groups[i] = _groups[i].copy(metric = metric)
+        viewModelScope.launch { db.counterGroupDao().upsert(_groups[i]) }
+    }
+
     // ── Export ────────────────────────────────────────────────────────────────
 
     fun buildCsvExport(): String {
@@ -620,25 +628,43 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
         switchActiveList(list.id)
     }
 
-    /** RFC-4180-compliant CSV line splitter that handles quoted fields. */
-    private fun parseCsvLine(line: String): List<String> {
-        val fields = mutableListOf<String>()
-        val sb = StringBuilder()
-        var inQuotes = false
-        var i = 0
-        while (i < line.length) {
-            when {
-                line[i] == '"' && inQuotes && i + 1 < line.length && line[i + 1] == '"' -> {
-                    sb.append('"'); i += 2
-                }
-                line[i] == '"' -> { inQuotes = !inQuotes; i++ }
-                line[i] == ',' && !inQuotes -> { fields.add(sb.toString()); sb.clear(); i++ }
-                else -> { sb.append(line[i]); i++ }
-            }
-        }
-        fields.add(sb.toString())
-        return fields
-    }
+     /** RFC-4180-compliant CSV line splitter that handles quoted fields. */
+     private fun parseCsvLine(line: String): List<String> {
+         val fields = mutableListOf<String>()
+         val sb = StringBuilder()
+         var inQuotes = false
+         var i = 0
+         while (i < line.length) {
+             when {
+                 line[i] == '"' && inQuotes && i + 1 < line.length && line[i + 1] == '"' -> {
+                     sb.append('"'); i += 2
+                 }
+                 line[i] == '"' -> { inQuotes = !inQuotes; i++ }
+                 line[i] == ',' && !inQuotes -> { fields.add(sb.toString()); sb.clear(); i++ }
+                 else -> { sb.append(line[i]); i++ }
+             }
+         }
+         fields.add(sb.toString())
+         return fields
+     }
+
+     // ── Metric Calculations ────────────────────────────────────────────────────
+
+     fun calculateGroupMetric(counters: List<Counter>, metric: GroupMetric): Double {
+         return when (metric) {
+             GroupMetric.SUM -> counters.sumOf { it.value }.toDouble()
+             GroupMetric.AVERAGE -> if (counters.isEmpty()) 0.0 else counters.sumOf { it.value }.toDouble() / counters.size
+             GroupMetric.MAXIMUM -> if (counters.isEmpty()) 0.0 else counters.maxOf { it.value }.toDouble()
+             GroupMetric.MINIMUM -> if (counters.isEmpty()) 0.0 else counters.minOf { it.value }.toDouble()
+             GroupMetric.MODE -> {
+                 if (counters.isEmpty()) 0.0
+                 else {
+                     val counts = counters.groupingBy { it.value }.eachCount()
+                     counts.maxByOrNull { it.value }?.key?.toDouble() ?: 0.0
+                 }
+             }
+         }
+     }
 
     // ── Factory ───────────────────────────────────────────────────────────────
 

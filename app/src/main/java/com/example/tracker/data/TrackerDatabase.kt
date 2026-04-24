@@ -4,14 +4,25 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverter
+import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
+class Converters {
+    @TypeConverter
+    fun fromGroupMetric(metric: GroupMetric): String = metric.name
+
+    @TypeConverter
+    fun toGroupMetric(value: String): GroupMetric = GroupMetric.valueOf(value)
+}
+
 @Database(
     entities = [CounterList::class, Counter::class, CounterGroup::class, CustomOrderEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
+@TypeConverters(Converters::class)
 abstract class TrackerDatabase : RoomDatabase() {
     abstract fun counterListDao(): CounterListDao
     abstract fun counterDao(): CounterDao
@@ -54,13 +65,19 @@ abstract class TrackerDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE `counter_groups` ADD COLUMN `metric` TEXT NOT NULL DEFAULT 'SUM'")
+            }
+        }
+
         fun getInstance(context: Context): TrackerDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
                     TrackerDatabase::class.java,
                     "tracker.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { INSTANCE = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { INSTANCE = it }
             }
     }
 }

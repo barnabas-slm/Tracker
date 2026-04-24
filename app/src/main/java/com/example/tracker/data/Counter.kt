@@ -3,6 +3,14 @@ package com.example.tracker.data
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
+enum class GroupMetric {
+    SUM,
+    AVERAGE,
+    MAXIMUM,
+    MINIMUM,
+    MODE
+}
+
 @Entity(tableName = "counter_lists")
 data class CounterList(
     @PrimaryKey val id: String = "",
@@ -25,7 +33,8 @@ data class CounterGroup(
     @PrimaryKey val id: String = "",
     val name: String = "Group",
     val colorValue: Long = 0L,
-    val listId: String = ""
+    val listId: String = "",
+    val metric: GroupMetric = GroupMetric.SUM
 )
 
 /** Stores the custom drag order as a comma-separated list of "g:<id>" / "c:<id>" keys, keyed by listId. */
