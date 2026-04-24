@@ -349,16 +349,15 @@ fun GroupSettingsDialog(
                     modifier = Modifier.fillMaxWidth(), singleLine = true)
 
                 // Metric dropdown
-                Text("Metric", style = MaterialTheme.typography.labelLarge)
                 ExposedDropdownMenuBox(
                     expanded = metricDropdownExpanded,
                     onExpandedChange = { metricDropdownExpanded = !metricDropdownExpanded },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     OutlinedTextField(
-                        value = metric.name,
+                        value = metric.name.lowercase().replaceFirstChar { it.uppercase() },
                         onValueChange = {},
-                        label = { Text("Select Metric") },
+                        label = { Text("Metric") },
                         readOnly = true,
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = metricDropdownExpanded) },
                         modifier = Modifier
@@ -371,7 +370,7 @@ fun GroupSettingsDialog(
                     ) {
                         GroupMetric.values().forEach { metricOption ->
                             DropdownMenuItem(
-                                text = { Text(metricOption.name) },
+                                text = { Text(metricOption.name.lowercase().replaceFirstChar { it.uppercase() }) },
                                 onClick = {
                                     metric = metricOption
                                     metricDropdownExpanded = false
