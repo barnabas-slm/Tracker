@@ -80,6 +80,55 @@ val colorOptions: List<Pair<String, Long>> = listOf(
     "Lavender"   to 0xFFCE93D8L,
 )
 
+// ── Reusable animated delete confirmation overlay ─────────────────────────────
+@Composable
+fun ConfirmDeleteOverlay(
+    visible: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(animationSpec = tween(160)) +
+                scaleIn(animationSpec = tween(180), initialScale = 0.96f),
+        exit  = fadeOut(animationSpec = tween(120)) +
+                scaleOut(animationSpec = tween(140), targetScale = 0.98f)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.32f))
+                .clickable { onDismiss() },
+            contentAlignment = Alignment.Center
+        ) {
+            Card(modifier = Modifier.padding(24.dp)) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Are you sure?",
+                        style = MaterialTheme.typography.titleLarge,
+                        textAlign = TextAlign.Start
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = { onDismiss() }) { Text("Cancel") }
+                        TextButton(onClick = {
+                            onDismiss()
+                            onConfirm()
+                        }) {
+                            Text("Delete", color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 // ── Add counter ───────────────────────────────────────────────────────────────
 @Composable
 fun AddCounterDialog(onDismiss: () -> Unit, onAdd: (String) -> Unit) {
@@ -521,47 +570,11 @@ fun ListSettingsDialog(
             }
         }
 
-        AnimatedVisibility(
+        ConfirmDeleteOverlay(
             visible = showDeleteConfirm,
-            enter = fadeIn(animationSpec = tween(160)) +
-                    scaleIn(animationSpec = tween(180), initialScale = 0.96f),
-            exit = fadeOut(animationSpec = tween(120)) +
-                   scaleOut(animationSpec = tween(140), targetScale = 0.98f)
-        ) {
-            // Keep confirmation in the same window to avoid abrupt stacked-dialog transitions.
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.32f))
-                    .clickable { showDeleteConfirm = false },
-                contentAlignment = Alignment.Center
-            ) {
-                Card(modifier = Modifier.padding(24.dp)) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Text(
-                            text = "Are you sure?",
-                            style = MaterialTheme.typography.titleLarge,
-                            textAlign = TextAlign.Start
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
-                            TextButton(onClick = {
-                                showDeleteConfirm = false
-                                onDelete()
-                            }) {
-                                Text("Delete", color = MaterialTheme.colorScheme.error)
-                            }
-                        }
-                    }
-                }
-            }
-        }
+            onDismiss = { showDeleteConfirm = false },
+            onConfirm = onDelete
+        )
     }
 }
 
