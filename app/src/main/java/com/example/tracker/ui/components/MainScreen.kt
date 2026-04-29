@@ -283,6 +283,8 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                             val isActive = list.id == activeListId
                             Tab(
                                 selected = isActive,
+                                selectedContentColor = MaterialTheme.colorScheme.primary,
+                                unselectedContentColor = MaterialTheme.colorScheme.onBackground,
                                 // Tap unselected tab → switch list.
                                 // Tap the already-selected tab → open list settings.
                                 onClick = {
