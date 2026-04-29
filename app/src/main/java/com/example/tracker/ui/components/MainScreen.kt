@@ -23,6 +23,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
@@ -38,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -58,6 +61,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.example.tracker.viewmodel.CounterViewModel
 import com.example.tracker.data.GroupMetric
+import kotlinx.coroutines.launch
 import java.io.File
 
 @Composable
@@ -80,6 +84,8 @@ fun TrackerApp(viewModel: CounterViewModel) {
 @Composable
 fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
     val topAppBarScrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     var showMenu         by rememberSaveable { mutableStateOf(false) }
     var showFabMenu      by rememberSaveable { mutableStateOf(false) }
@@ -153,6 +159,7 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
     Scaffold(
         modifier = Modifier.nestedScroll(topAppBarScrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
             Box {
                 FloatingActionButton(onClick = { showFabMenu = !showFabMenu }) {
@@ -344,17 +351,37 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
         visible = confirmDeleteAllGroups,
         onDismiss = { confirmDeleteAllGroups = false },
         onConfirm = {
+            val deletedCount = viewModel.groups.count { it.listId == activeListId }
             viewModel.groups
                 .filter { it.listId == activeListId }
                 .forEach { groupExpandedState.remove(it.id) }
             viewModel.removeAllGroups()
+            coroutineScope.launch {
+                val message = if (deletedCount > 0) {
+                    "Deleted $deletedCount group" + if (deletedCount == 1) "" else "s"
+                } else {
+                    "No groups to delete"
+                }
+                snackbarHostState.showSnackbar(message)
+            }
         }
     )
 
     ConfirmDeleteOverlay(
         visible = confirmDeleteAllCounters,
         onDismiss = { confirmDeleteAllCounters = false },
-        onConfirm = { viewModel.removeAllCounters() }
+        onConfirm = {
+            val deletedCount = viewModel.counters.count { it.listId == activeListId }
+            viewModel.removeAllCounters()
+            coroutineScope.launch {
+                val message = if (deletedCount > 0) {
+                    "Deleted $deletedCount counter" + if (deletedCount == 1) "" else "s"
+                } else {
+                    "No counters to delete"
+                }
+                snackbarHostState.showSnackbar(message)
+            }
+        }
     )
 
     } // end Box
@@ -389,7 +416,13 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                 viewModel.updateCounterColor(cid, newColor)
                 editingCounterId = null
             },
-            onDelete = { viewModel.removeCounter(cid); editingCounterId = null }
+            onDelete = {
+                viewModel.removeCounter(cid)
+                editingCounterId = null
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar("Deleted counter: ${counter.name}")
+                }
+            }
         )
     }
 
@@ -406,7 +439,13 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                 viewModel.updateGroupMetric(gid, newMetric)
                 editingGroupId = null
             },
-            onDelete = { viewModel.removeGroup(gid); editingGroupId = null }
+            onDelete = {
+                viewModel.removeGroup(gid)
+                editingGroupId = null
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar("Deleted group: ${group.name}")
+                }
+            }
         )
     }
 
@@ -422,8 +461,12 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                 editingListId = null
             },
             onDelete    = {
+                val deletedListName = list.name
                 viewModel.removeList(lid)
                 editingListId = null
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar("Deleted list: $deletedListName")
+                }
             }
         )
     }
