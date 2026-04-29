@@ -150,9 +150,21 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
             val content = context.contentResolver.openInputStream(uri)
                 ?.bufferedReader()
                 ?.readText()
-                ?: return@rememberLauncherForActivityResult
+                ?: run {
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Import failed: unable to read CSV file")
+                    }
+                    return@rememberLauncherForActivityResult
+                }
             viewModel.importFromCsv(content, listName)
-        } catch (_: Exception) { /* ignore read errors silently */ }
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar("Imported list: $listName")
+            }
+        } catch (_: Exception) {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar("Import failed: invalid or unreadable CSV")
+            }
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
