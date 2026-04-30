@@ -44,11 +44,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -60,6 +65,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -210,18 +216,18 @@ fun CounterSettingsDialog(
                         }
                     },
                     actions = {
-                        IconButton(onClick = onDuplicate) {
-                            Icon(
-                                imageVector = Icons.Outlined.ContentCopy,
-                                contentDescription = "Duplicate Counter"
-                            )
-                        }
-                        IconButton(onClick = onDelete) {
-                            Icon(
-                                imageVector = Icons.Outlined.Delete,
-                                contentDescription = "Delete Counter"
-                            )
-                        }
+                        SettingsActionIconButton(
+                            tooltip = "Duplicate Counter",
+                            onClick = onDuplicate,
+                            imageVector = Icons.Outlined.ContentCopy,
+                            contentDescription = "Duplicate Counter"
+                        )
+                        SettingsActionIconButton(
+                            tooltip = "Delete Counter",
+                            onClick = onDelete,
+                            imageVector = Icons.Outlined.Delete,
+                            contentDescription = "Delete Counter"
+                        )
                     }
                 )
             },
@@ -385,18 +391,18 @@ fun GroupSettingsDialog(
                         }
                     },
                     actions = {
-                        IconButton(onClick = onDuplicate) {
-                            Icon(
-                                imageVector = Icons.Outlined.ContentCopy,
-                                contentDescription = "Duplicate Group"
-                            )
-                        }
-                        IconButton(onClick = onDelete) {
-                            Icon(
-                                imageVector = Icons.Outlined.Delete,
-                                contentDescription = "Delete Group"
-                            )
-                        }
+                        SettingsActionIconButton(
+                            tooltip = "Duplicate Group",
+                            onClick = onDuplicate,
+                            imageVector = Icons.Outlined.ContentCopy,
+                            contentDescription = "Duplicate Group"
+                        )
+                        SettingsActionIconButton(
+                            tooltip = "Delete Group",
+                            onClick = onDelete,
+                            imageVector = Icons.Outlined.Delete,
+                            contentDescription = "Delete Group"
+                        )
                     }
                 )
             },
@@ -543,19 +549,19 @@ fun ListSettingsDialog(
                         }
                     },
                     actions = {
-                        IconButton(onClick = onDuplicate) {
-                            Icon(
-                                imageVector = Icons.Outlined.ContentCopy,
-                                contentDescription = "Duplicate List"
-                            )
-                        }
+                        SettingsActionIconButton(
+                            tooltip = "Duplicate List",
+                            onClick = onDuplicate,
+                            imageVector = Icons.Outlined.ContentCopy,
+                            contentDescription = "Duplicate List"
+                        )
                         if (!isOnlyList) {
-                            IconButton(onClick = { showDeleteConfirm = true }) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Delete,
-                                    contentDescription = "Delete List"
-                                )
-                            }
+                            SettingsActionIconButton(
+                                tooltip = "Delete List",
+                                onClick = { showDeleteConfirm = true },
+                                imageVector = Icons.Outlined.Delete,
+                                contentDescription = "Delete List"
+                            )
                         }
                     }
                 )
@@ -714,5 +720,26 @@ private fun NoColorSwatch(selected: Boolean, onClick: () -> Unit) {
             contentDescription = "No color",
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsActionIconButton(
+    tooltip: String,
+    onClick: () -> Unit,
+    imageVector: ImageVector,
+    contentDescription: String,
+) {
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+            positioning = TooltipAnchorPosition.Above
+        ),
+        tooltip = { PlainTooltip { Text(tooltip) } },
+        state = rememberTooltipState()
+    ) {
+        IconButton(onClick = onClick) {
+            Icon(imageVector = imageVector, contentDescription = contentDescription)
+        }
     }
 }
