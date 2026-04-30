@@ -428,6 +428,15 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                 viewModel.updateCounterColor(cid, newColor)
                 editingCounterId = null
             },
+            onDuplicate = {
+                val duplicatedId = viewModel.duplicateCounter(cid)
+                if (duplicatedId != null) {
+                    editingCounterId = null
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Duplicated counter: ${counter.name}")
+                    }
+                }
+            },
             onDelete = {
                 viewModel.removeCounter(cid)
                 editingCounterId = null
@@ -451,6 +460,15 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                 viewModel.updateGroupMetric(gid, newMetric)
                 editingGroupId = null
             },
+            onDuplicate = {
+                val duplicatedId = viewModel.duplicateGroup(gid)
+                if (duplicatedId != null) {
+                    editingGroupId = null
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Duplicated group: ${group.name}")
+                    }
+                }
+            },
             onDelete = {
                 viewModel.removeGroup(gid)
                 editingGroupId = null
@@ -472,6 +490,15 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
                 viewModel.renameList(lid, newName)
                 editingListId = null
             },
+            onDuplicate = {
+                val duplicatedId = viewModel.duplicateList(lid)
+                if (duplicatedId != null) {
+                    editingListId = null
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Duplicated list: ${list.name}")
+                    }
+                }
+            },
             onDelete    = {
                 val deletedListName = list.name
                 viewModel.removeList(lid)
@@ -484,4 +511,3 @@ fun MainScreen(viewModel: CounterViewModel, onNavigateToAbout: () -> Unit) {
     }
 
 }
-

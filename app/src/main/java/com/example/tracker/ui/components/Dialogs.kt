@@ -30,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FormatColorReset
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -183,6 +184,7 @@ fun CounterSettingsDialog(
     currentColor: Long?,
     onDismiss: () -> Unit,
     onSave: (newName: String, newValue: Int, newGroupId: String?, newColor: Long?) -> Unit,
+    onDuplicate: () -> Unit,
     onDelete: () -> Unit,
 ) {
     var name  by remember { mutableStateOf(counterName) }
@@ -208,6 +210,12 @@ fun CounterSettingsDialog(
                         }
                     },
                     actions = {
+                        IconButton(onClick = onDuplicate) {
+                            Icon(
+                                imageVector = Icons.Outlined.ContentCopy,
+                                contentDescription = "Duplicate Counter"
+                            )
+                        }
                         IconButton(onClick = onDelete) {
                             Icon(
                                 imageVector = Icons.Outlined.Delete,
@@ -349,6 +357,7 @@ fun GroupSettingsDialog(
     groupMetric: GroupMetric = GroupMetric.SUM,
     onDismiss: () -> Unit,
     onSave: (newName: String, newColor: Long?, newMetric: GroupMetric) -> Unit,
+    onDuplicate: () -> Unit,
     onDelete: () -> Unit,
 ) {
     var name  by remember { mutableStateOf(groupName) }
@@ -376,6 +385,12 @@ fun GroupSettingsDialog(
                         }
                     },
                     actions = {
+                        IconButton(onClick = onDuplicate) {
+                            Icon(
+                                imageVector = Icons.Outlined.ContentCopy,
+                                contentDescription = "Duplicate Group"
+                            )
+                        }
                         IconButton(onClick = onDelete) {
                             Icon(
                                 imageVector = Icons.Outlined.Delete,
@@ -506,6 +521,7 @@ fun ListSettingsDialog(
     onDismiss: () -> Unit,
     onExportCsv: () -> Unit,
     onSave: (newName: String) -> Unit,
+    onDuplicate: () -> Unit,
     onDelete: () -> Unit,
 ) {
     var name by remember { mutableStateOf(listName) }
@@ -527,6 +543,12 @@ fun ListSettingsDialog(
                         }
                     },
                     actions = {
+                        IconButton(onClick = onDuplicate) {
+                            Icon(
+                                imageVector = Icons.Outlined.ContentCopy,
+                                contentDescription = "Duplicate List"
+                            )
+                        }
                         if (!isOnlyList) {
                             IconButton(onClick = { showDeleteConfirm = true }) {
                                 Icon(
@@ -694,4 +716,3 @@ private fun NoColorSwatch(selected: Boolean, onClick: () -> Unit) {
         )
     }
 }
-
