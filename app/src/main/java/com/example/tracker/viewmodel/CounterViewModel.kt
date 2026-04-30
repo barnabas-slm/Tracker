@@ -239,6 +239,93 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
         }
     }
 
+    fun duplicateList(listId: String): String? {
+        val sourceList = _lists.find { it.id == listId } ?: return null
+        listSequence++
+
+        val duplicatedList = CounterList(
+            id = UUID.randomUUID().toString(),
+            name = sourceList.name,
+            position = _lists.size
+        )
+
+        val sourceGroups = _groups.filter { it.listId == listId }
+        val sourceCounters = _counters.filter { it.listId == listId }
+
+        val groupIdMap = HashMap<String, String>(sourceGroups.size)
+        val duplicatedGroups = sourceGroups.map { group ->
+            val newGroupId = UUID.randomUUID().toString()
+            groupIdMap[group.id] = newGroupId
+            group.copy(id = newGroupId, listId = duplicatedList.id)
+        }
+
+        val duplicatedCounters = sourceCounters.map { counter ->
+            counter.copy(
+                id = UUID.randomUUID().toString(),
+                listId = duplicatedList.id,
+                groupId = counter.groupId?.let { groupIdMap[it] }
+            )
+        }
+
+        val counterIdMap = sourceCounters.zip(duplicatedCounters).associate { (source, duplicated) ->
+            source.id to duplicated.id
+        }
+
+        groupSequence += duplicatedGroups.size
+        counterSequence += duplicatedCounters.size
+
+        val sourceOrder = if (listId == _activeListId.value) {
+            _customOrder.toList()
+        } else {
+            _customOrderCache[listId]?.toList().orEmpty()
+        }
+
+        val tokenMap = buildMap {
+            sourceGroups.forEachIndexed { index, group ->
+                put("g:${group.id}", "g:${duplicatedGroups[index].id}")
+            }
+            sourceCounters
+                .filter { it.groupId == null }
+                .forEach { sourceCounter ->
+                    val duplicatedCounterId = counterIdMap[sourceCounter.id] ?: return@forEach
+                    put("c:${sourceCounter.id}", "c:$duplicatedCounterId")
+                }
+        }
+
+        val duplicatedOrder = mutableListOf<String>()
+        sourceOrder.forEach { token ->
+            tokenMap[token]?.let { mapped ->
+                if (mapped !in duplicatedOrder) duplicatedOrder.add(mapped)
+            }
+        }
+
+        val fallbackOrderTokens = sourceGroups.map { "g:${it.id}" } +
+            sourceCounters.filter { it.groupId == null }.map { "c:${it.id}" }
+        fallbackOrderTokens.forEach { token ->
+            val mapped = tokenMap[token] ?: return@forEach
+            if (mapped !in duplicatedOrder) duplicatedOrder.add(mapped)
+        }
+
+        _lists.add(duplicatedList)
+        _groups.addAll(duplicatedGroups)
+        _counters.addAll(duplicatedCounters)
+        _customOrderCache[duplicatedList.id] = duplicatedOrder.toMutableList()
+
+        viewModelScope.launch {
+            db.counterListDao().upsert(duplicatedList)
+            duplicatedGroups.forEach { db.counterGroupDao().upsert(it) }
+            duplicatedCounters.forEach { db.counterDao().upsert(it) }
+            db.customOrderDao().saveOrder(
+                CustomOrderEntity(
+                    listId = duplicatedList.id,
+                    order = duplicatedOrder.joinToString(",")
+                )
+            )
+        }
+
+        return duplicatedList.id
+    }
+
     /**
      * Switch the active list. Saves the current list's order to the cache,
      * then loads the target list's order into _customOrder.
@@ -443,6 +530,23 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
         viewModelScope.launch { db.counterDao().upsert(_counters[i]) }
     }
 
+    fun duplicateCounter(counterId: String): String? {
+        val sourceCounter = _counters.find { it.id == counterId } ?: return null
+        val duplicatedCounter = sourceCounter.copy(id = UUID.randomUUID().toString())
+
+        counterSequence++
+        _counters.add(duplicatedCounter)
+
+        if (duplicatedCounter.groupId == null && duplicatedCounter.listId == _activeListId.value) {
+            _customOrder.add("c:${duplicatedCounter.id}")
+            saveOrder()
+            _lastAddedKey.value = "c:${duplicatedCounter.id}"
+        }
+
+        viewModelScope.launch { db.counterDao().upsert(duplicatedCounter) }
+        return duplicatedCounter.id
+    }
+
     // ── Group CRUD ────────────────────────────────────────────────────────────
 
     fun addGroup(name: String? = null, colorValue: Long? = null) {
@@ -456,6 +560,35 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
         saveOrder()
         _lastAddedKey.value = "g:${group.id}"
         viewModelScope.launch { db.counterGroupDao().upsert(group) }
+    }
+
+    fun duplicateGroup(groupId: String): String? {
+        val sourceGroup = _groups.find { it.id == groupId } ?: return null
+        val countersInGroup = _counters.filter { it.groupId == groupId }
+
+        val duplicatedGroup = sourceGroup.copy(id = UUID.randomUUID().toString())
+        val duplicatedCounters = countersInGroup.map { counter ->
+            counter.copy(id = UUID.randomUUID().toString(), groupId = duplicatedGroup.id)
+        }
+
+        groupSequence++
+        counterSequence += duplicatedCounters.size
+
+        _groups.add(duplicatedGroup)
+        _counters.addAll(duplicatedCounters)
+
+        if (duplicatedGroup.listId == _activeListId.value) {
+            _customOrder.add("g:${duplicatedGroup.id}")
+            saveOrder()
+            _lastAddedKey.value = "g:${duplicatedGroup.id}"
+        }
+
+        viewModelScope.launch {
+            db.counterGroupDao().upsert(duplicatedGroup)
+            duplicatedCounters.forEach { db.counterDao().upsert(it) }
+        }
+
+        return duplicatedGroup.id
     }
 
     fun removeGroup(groupId: String) {
@@ -679,3 +812,4 @@ class CounterViewModel(private val db: TrackerDatabase, context: Context) : View
             CounterViewModel(db, context) as T
     }
 }
+

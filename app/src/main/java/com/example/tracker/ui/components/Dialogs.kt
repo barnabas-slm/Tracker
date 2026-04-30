@@ -30,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FormatColorReset
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -43,11 +44,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -59,6 +65,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -183,6 +190,7 @@ fun CounterSettingsDialog(
     currentColor: Long?,
     onDismiss: () -> Unit,
     onSave: (newName: String, newValue: Int, newGroupId: String?, newColor: Long?) -> Unit,
+    onDuplicate: () -> Unit,
     onDelete: () -> Unit,
 ) {
     var name  by remember { mutableStateOf(counterName) }
@@ -208,12 +216,18 @@ fun CounterSettingsDialog(
                         }
                     },
                     actions = {
-                        IconButton(onClick = onDelete) {
-                            Icon(
-                                imageVector = Icons.Outlined.Delete,
-                                contentDescription = "Delete Counter"
-                            )
-                        }
+                        SettingsActionIconButton(
+                            tooltip = "Duplicate Counter",
+                            onClick = onDuplicate,
+                            imageVector = Icons.Outlined.ContentCopy,
+                            contentDescription = "Duplicate Counter"
+                        )
+                        SettingsActionIconButton(
+                            tooltip = "Delete Counter",
+                            onClick = onDelete,
+                            imageVector = Icons.Outlined.Delete,
+                            contentDescription = "Delete Counter"
+                        )
                     }
                 )
             },
@@ -349,6 +363,7 @@ fun GroupSettingsDialog(
     groupMetric: GroupMetric = GroupMetric.SUM,
     onDismiss: () -> Unit,
     onSave: (newName: String, newColor: Long?, newMetric: GroupMetric) -> Unit,
+    onDuplicate: () -> Unit,
     onDelete: () -> Unit,
 ) {
     var name  by remember { mutableStateOf(groupName) }
@@ -376,12 +391,18 @@ fun GroupSettingsDialog(
                         }
                     },
                     actions = {
-                        IconButton(onClick = onDelete) {
-                            Icon(
-                                imageVector = Icons.Outlined.Delete,
-                                contentDescription = "Delete Group"
-                            )
-                        }
+                        SettingsActionIconButton(
+                            tooltip = "Duplicate Group",
+                            onClick = onDuplicate,
+                            imageVector = Icons.Outlined.ContentCopy,
+                            contentDescription = "Duplicate Group"
+                        )
+                        SettingsActionIconButton(
+                            tooltip = "Delete Group",
+                            onClick = onDelete,
+                            imageVector = Icons.Outlined.Delete,
+                            contentDescription = "Delete Group"
+                        )
                     }
                 )
             },
@@ -506,6 +527,7 @@ fun ListSettingsDialog(
     onDismiss: () -> Unit,
     onExportCsv: () -> Unit,
     onSave: (newName: String) -> Unit,
+    onDuplicate: () -> Unit,
     onDelete: () -> Unit,
 ) {
     var name by remember { mutableStateOf(listName) }
@@ -527,13 +549,19 @@ fun ListSettingsDialog(
                         }
                     },
                     actions = {
+                        SettingsActionIconButton(
+                            tooltip = "Duplicate List",
+                            onClick = onDuplicate,
+                            imageVector = Icons.Outlined.ContentCopy,
+                            contentDescription = "Duplicate List"
+                        )
                         if (!isOnlyList) {
-                            IconButton(onClick = { showDeleteConfirm = true }) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Delete,
-                                    contentDescription = "Delete List"
-                                )
-                            }
+                            SettingsActionIconButton(
+                                tooltip = "Delete List",
+                                onClick = { showDeleteConfirm = true },
+                                imageVector = Icons.Outlined.Delete,
+                                contentDescription = "Delete List"
+                            )
                         }
                     }
                 )
@@ -695,3 +723,23 @@ private fun NoColorSwatch(selected: Boolean, onClick: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsActionIconButton(
+    tooltip: String,
+    onClick: () -> Unit,
+    imageVector: ImageVector,
+    contentDescription: String,
+) {
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+            positioning = TooltipAnchorPosition.Above
+        ),
+        tooltip = { PlainTooltip { Text(tooltip) } },
+        state = rememberTooltipState()
+    ) {
+        IconButton(onClick = onClick) {
+            Icon(imageVector = imageVector, contentDescription = contentDescription)
+        }
+    }
+}
